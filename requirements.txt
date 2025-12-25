@@ -1,0 +1,16 @@
+# Django and Web Framework
+Django==5.1.4
+gunicorn==21.2.0
+
+# HTTP Requests
+requests==2.31.0
+urllib3==2.1.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Time and Date
+python-dateutil==2.8.2
+
+# Health Check Support
+psutil==5.9.6

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <div class="stat-value" id="total-services">{{ total_services }}</div>
+                <div class="stat-label">Total Services</div>
+            </div>
+        </div>
+        <div class="stat-card stat-success">
+            <div class="stat-icon">✅</div>
+            <div class="stat-content">
+                <div class="stat-value" id="up-services">{{ up_services }}</div>
+                <div class="stat-label">Services Up</div>
+            </div>
+        </div>
+        <div class="stat-card stat-danger">
+            <div class="stat-icon">❌</div>
+            <div class="stat-content">
+                <div class="stat-value" id="down-services">{{ down_services }}</div>
+                <div class="stat-label">Services Down</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="services-grid" id="services-grid">
+    {% for service in services %}
+    <div class="service-card {% if service.status == 'up' %}status-up{% elif service.status == 'down' %}status-down{% else %}status-unknown{% endif %}" 
+         data-service-id="{{ service.id }}"
+         onclick="openService('{{ service.url }}')">
+        <div class="service-header">
+            <div class="service-icon">
+                {% if service.icon %}
+                    {{ service.icon }}
+                {% else %}
+                    🔧
+                {% endif %}
+            </div>
+            <div class="service-status">
+                <span class="status-badge status-{{ service.status }}">
+                    {{ service.status|upper }}
+                </span>
+            </div>
+        </div>
+        <div class="service-body">
+            <h3 class="service-name">{{ service.name }}</h3>
+            {% if service.description %}
+            <p class="service-description">{{ service.description }}</p>
+            {% endif %}
+            <div class="service-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Type:</span>
+                    <span class="meta-value">{{ service.get_service_type_display }}</span>
+                </div>
+                {% if service.response_time %}
+                <div class="meta-item">
+                    <span class="meta-label">Response:</span>
+                    <span class="meta-value">{{ service.response_time }}ms</span>
+                </div>
+                {% endif %}
+            </div>
+            {% if service.tags %}
+            <div class="service-tags">
+                {% for tag in service.tags.split %}
+                    {% if tag %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="service-footer">
+            <small class="service-url">{{ service.url }}</small>
+            {% if service.last_checked %}
+            <small class="service-checked">Checked: {{ service.last_checked|timesince }} ago</small>
+            {% endif %}
+            <small class="service-checked">
+                Status changed: 
+                {% if service.status_changed_at %}
+                    {{ service.status_changed_at|date:"Y-m-d H:i:s" }}
+                {% else %}
+                    Never
+                {% endif %}
+            </small>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h2>No Services Found</h2>
+        <p>Click the "Refresh Services" button to discover services from Traefik.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Refreshing services...</p>
+    </div>
+</div>
+{% endblock %}
