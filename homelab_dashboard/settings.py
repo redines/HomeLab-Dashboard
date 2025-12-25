@@ -221,3 +221,47 @@ LOGGING = {
         },
     },
 }
+
+# Field Encryption Key
+# Automatically generate and persist encryption key
+def get_or_create_encryption_key():
+    """Get existing encryption key or generate a new one."""
+    key_file = BASE_DIR / '.encryption_key'
+    
+    # Try to load existing key
+    if key_file.exists():
+        try:
+            with open(key_file, 'r') as f:
+                key = f.read().strip()
+                if key:
+                    return key
+        except Exception as e:
+            import warnings
+            warnings.warn(f"Could not read encryption key file: {e}", RuntimeWarning)
+    
+    # Generate new key if file doesn't exist or is empty
+    from cryptography.fernet import Fernet
+    key = Fernet.generate_key().decode()
+    
+    # Save the key for future use
+    try:
+        with open(key_file, 'w') as f:
+            f.write(key)
+        # Set restrictive permissions (owner read/write only)
+        import os
+        os.chmod(key_file, 0o600)
+        
+        if DEBUG:
+            import warnings
+            warnings.warn(
+                f"Generated new encryption key and saved to {key_file}. "
+                "Keep this file secure and backed up!",
+                RuntimeWarning
+            )
+    except Exception as e:
+        import warnings
+        warnings.warn(f"Could not save encryption key to file: {e}", RuntimeWarning)
+    
+    return key
+
+FIELD_ENCRYPTION_KEY = get_or_create_encryption_key()

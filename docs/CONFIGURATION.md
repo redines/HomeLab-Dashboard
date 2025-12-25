@@ -14,6 +14,48 @@ Configure the dashboard using environment variables in `.env` file or `docker-co
 | `TRAEFIK_API_PASSWORD` | Traefik API password (if auth enabled) | `` |
 | `SERVICE_REFRESH_INTERVAL` | Auto-refresh interval in seconds | `60` |
 
+## API Detection
+
+The dashboard automatically detects APIs for your services by probing common API endpoints.
+
+### Automatic Detection
+
+APIs are detected automatically by:
+1. **Probing common endpoints** - Tries standard API paths like `/api`, `/api/v1`, `/api/v2`, etc.
+2. **Traefik/Docker labels** - Reads API information from container labels
+3. **Service names** - Uses the service name as the API type when detected
+
+### Custom API Configuration via Labels
+
+You can provide API information through Docker/Traefik labels to override automatic detection:
+
+```yaml
+services:
+  myservice:
+    image: myapp:latest
+    labels:
+      # Enable API detection
+      - "homelab.api.enabled=true"
+      # Specify API type
+      - "homelab.api.type=myapp"
+      # Docker Compose service name is also used
+      - "com.docker.compose.service=myservice"
+```
+
+### Manual API Configuration
+
+For services requiring authentication or custom API endpoints, configure credentials in the service detail page:
+- Navigate to the service in the dashboard
+- Click "Configure API"
+- Enter API credentials (stored encrypted)
+- API URL is auto-populated from Traefik but can be edited
+
+### API Re-detection
+
+- APIs are cached for 7 days to avoid unnecessary probing
+- Force re-detection via CLI: `python manage.py detect_apis --force`
+- Force re-detection via UI: Click "Re-detect API" button on service detail page
+
 ## Traefik Configuration
 
 Ensure your Traefik instance has the API enabled.

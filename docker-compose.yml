@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   web:
     build: .
@@ -17,6 +15,9 @@ services:
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
+      # Note: .encryption_key is auto-generated and persisted via the . volume mount
+      # This ensures encryption key persists across container restarts
+      # For production, consider: - ./data/.encryption_key:/app/.encryption_key
     restart: unless-stopped
     networks:
       - homelab

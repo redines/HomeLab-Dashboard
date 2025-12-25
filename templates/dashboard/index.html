@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="my-8">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="bg-bg-secondary border border-border rounded-xl p-6 flex items-center gap-4 shadow-md transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl">
             <div class="text-4xl">📊</div>
             <div>
@@ -25,14 +25,20 @@
                 <div class="text-sm text-text-secondary mt-1">Services Down</div>
             </div>
         </div>
+        <div class="bg-bg-secondary border border-border rounded-xl p-6 flex items-center gap-4 shadow-md transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl">
+            <div class="text-4xl">🔌</div>
+            <div>
+                <div class="text-3xl font-bold leading-none text-blue-400" id="api-services">{{ api_services }}</div>
+                <div class="text-sm text-text-secondary mt-1">APIs Available</div>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" id="services-grid">
     {% for service in services %}
     <div class="bg-bg-secondary border-2 {% if service.status == 'up' %}border-l-4 border-l-success border-border{% elif service.status == 'down' %}border-l-4 border-l-danger border-border{% else %}border-l-4 border-l-warning border-border{% endif %} rounded-xl p-6 cursor-pointer transition-all duration-300 flex flex-col gap-4 shadow-md hover:-translate-y-1 hover:shadow-xl hover:border-primary" 
-         data-service-id="{{ service.id }}"
-         onclick="openService('{{ service.url }}')">
+         data-service-id="{{ service.id }}">
         <div class="flex justify-between items-center">
             <div class="text-3xl">
                 {% if service.icon %}
@@ -41,7 +47,12 @@
                     🔧
                 {% endif %}
             </div>
-            <div>
+            <div class="flex gap-2">
+                {% if service.api_detected %}
+                <span class="px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wide bg-blue-500/20 text-blue-400 border border-blue-500/30" title="API Available">
+                    🔌 API
+                </span>
+                {% endif %}
                 <span class="px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wide {% if service.status == 'up' %}bg-success/20 text-success{% elif service.status == 'down' %}bg-danger/20 text-danger{% else %}bg-warning/20 text-warning{% endif %}">
                     {{ service.status|upper }}
                 </span>
@@ -74,19 +85,36 @@
             </div>
             {% endif %}
         </div>
-        <div class="border-t border-border pt-3 flex flex-col gap-1">
-            <small class="text-text-secondary text-xs break-all">{{ service.url }}</small>
+        <div class="border-t border-border pt-3 flex gap-2">
+            <a href="{% url 'dashboard:service_detail' service.id %}" 
+               class="flex-1 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 text-center text-sm font-medium"
+               onclick="event.stopPropagation()">
+                {% if service.api_type %}
+                    🔌 API Dashboard
+                {% else %}
+                    📊 Details
+                {% endif %}
+            </a>
+            <a href="{{ service.url }}" 
+               target="_blank"
+               class="flex-1 px-3 py-2 bg-bg border border-border rounded-lg hover:bg-bg-secondary text-center text-sm font-medium"
+               onclick="event.stopPropagation()">
+                🔗 Open Service
+            </a>
+        </div>
+        <div class="text-xs text-text-secondary space-y-1">
+            <div class="break-all">{{ service.url }}</div>
             {% if service.last_checked %}
-            <small class="text-text-secondary text-xs">Checked: {{ service.last_checked|timesince }} ago</small>
+            <div>Checked: {{ service.last_checked|timesince }} ago</div>
             {% endif %}
-            <small class="text-text-secondary text-xs">
+            <div>
                 Status changed: 
                 {% if service.status_changed_at %}
                     {{ service.status_changed_at|date:"Y-m-d H:i:s" }}
                 {% else %}
                     Never
                 {% endif %}
-            </small>
+            </div>
         </div>
     </div>
     {% empty %}

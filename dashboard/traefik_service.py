@@ -169,13 +169,18 @@ class TraefikService:
             return False
 
 
-def sync_traefik_services():
+def sync_traefik_services(force_api_detection=False):
     """
     Synchronize services from Traefik API to the database.
     This function can be called periodically or manually.
+    
+    Args:
+        force_api_detection: If True, re-detect APIs even if already detected
     """
     from dashboard.models import Service
+    from dashboard.api_detector import APIDetector
     from django.utils import timezone
+    from datetime import timedelta
     
     traefik = TraefikService()
     
@@ -202,6 +207,44 @@ def sync_traefik_services():
                     f"{existing_service.status} -> {service_data['status']}"
                 )
             
+            # Detect API availability
+            # Skip if already detected recently (within 7 days) unless forced or never detected
+            should_detect = force_api_detection or not existing_service or not existing_service.api_detected
+            
+            # Also re-detect if it's been more than 7 days since last detection
+            if existing_service and existing_service.api_last_detected:
+                days_since_detection = (timezone.now() - existing_service.api_last_detected).days
+                if days_since_detection > 7:
+                    should_detect = True
+                    logger.info(f"Re-detecting API for {service_data['name']} (last detected {days_since_detection} days ago)")
+            
+            api_detected = False
+            detected_api_type = None
+            detected_endpoint = None
+            
+            # If service has manual credentials, mark as API available but skip probing
+            if existing_service and existing_service.api_username:
+                api_detected = True
+                detected_api_type = existing_service.api_type or service_data['name'].lower().replace(' ', '')
+                detected_endpoint = existing_service.api_endpoint
+                logger.debug(f"Service {service_data['name']} has manual API configuration")
+            elif should_detect:
+                # Probe for API
+                try:
+                    has_api, api_type, api_endpoint = APIDetector.detect_api(
+                        service_data['name'],
+                        service_data['url'],
+                        labels=None  # Could extract from Traefik if available
+                    )
+                    
+                    if has_api:
+                        api_detected = True
+                        detected_api_type = api_type
+                        detected_endpoint = api_endpoint
+                        logger.info(f"🔍 API detected for {service_data['name']}: {api_type}")
+                except Exception as e:
+                    logger.debug(f"API detection failed for {service_data['name']}: {e}")
+            
             # Prepare defaults
             defaults = {
                 'name': service_data['name'],
@@ -213,6 +256,18 @@ def sync_traefik_services():
                 'tags': service_data['tags'],
                 'last_checked': timezone.now(),
             }
+            
+            # Add API detection results
+            defaults['api_detected'] = api_detected
+            if api_detected:
+                defaults['api_last_detected'] = timezone.now()
+                if detected_api_type:
+                    defaults['api_type'] = detected_api_type
+                if detected_endpoint:
+                    defaults['api_endpoint'] = detected_endpoint
+                # Auto-populate API URL if detected and not already set
+                if not existing_service or not existing_service.api_url:
+                    defaults['api_url'] = service_data['url']
             
             # Update status_changed_at only if status changed or it's a new service
             if not existing_service or status_changed:

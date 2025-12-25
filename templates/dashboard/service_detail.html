@@ -1,0 +1,669 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="my-8">
+    <!-- Back button and header -->
+    <div class="mb-6">
+        <a href="{% url 'dashboard:home' %}" class="inline-flex items-center text-primary hover:text-primary/80 mb-4">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Dashboard
+        </a>
+        
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="text-5xl">
+                    {% if service.icon %}
+                        {{ service.icon }}
+                    {% else %}
+                        🔧
+                    {% endif %}
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold">{{ service.name }}</h1>
+                    <p class="text-text-secondary mt-1">{{ service.description|default:"No description available" }}</p>
+                </div>
+            </div>
+            <span class="px-4 py-2 rounded-xl text-sm font-semibold uppercase tracking-wide {% if service.status == 'up' %}bg-success/20 text-success{% elif service.status == 'down' %}bg-danger/20 text-danger{% else %}bg-warning/20 text-warning{% endif %}">
+                {{ service.status|upper }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Service Info Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-bg-secondary border border-border rounded-xl p-6">
+            <div class="text-text-secondary text-sm mb-2">Service URL</div>
+            <a href="{{ service.url }}" target="_blank" class="text-primary hover:text-primary/80 break-all">
+                {{ service.url }}
+            </a>
+        </div>
+        <div class="bg-bg-secondary border border-border rounded-xl p-6">
+            <div class="text-text-secondary text-sm mb-2">Response Time</div>
+            <div class="text-2xl font-bold">
+                {% if service.response_time %}
+                    {{ service.response_time }}ms
+                {% else %}
+                    N/A
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-bg-secondary border border-border rounded-xl p-6">
+            <div class="text-text-secondary text-sm mb-2">Last Checked</div>
+            <div class="text-lg">
+                {% if service.last_checked %}
+                    {{ service.last_checked|date:"Y-m-d H:i:s" }}
+                {% else %}
+                    Never
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- API Configuration Section -->
+    <div class="bg-bg-secondary border border-border rounded-xl p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">API Configuration</h2>
+            <button onclick="toggleCredentialsEdit()" id="edit-credentials-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80">
+                🔑 {% if has_api %}Edit{% else %}Configure{% endif %} Credentials
+            </button>
+        </div>
+        
+        <!-- Credentials Display -->
+        <div id="credentials-display" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="text-text-secondary text-sm mb-1">API Type</div>
+                <div class="font-medium">{{ service.api_type|default:"Not configured" }}</div>
+            </div>
+            <div>
+                <div class="text-text-secondary text-sm mb-1">API URL</div>
+                <div class="font-medium break-all">{{ service.api_url|default:"Not configured" }}</div>
+            </div>
+            <div>
+                <div class="text-text-secondary text-sm mb-1">Username</div>
+                <div class="font-medium">{% if service.api_username %}●●●●●●●●{% else %}Not set{% endif %}</div>
+            </div>
+            <div>
+                <div class="text-text-secondary text-sm mb-1">Password</div>
+                <div class="font-medium">{% if service.api_password %}●●●●●●●●{% else %}Not set{% endif %}</div>
+            </div>
+        </div>
+        
+        <!-- Credentials Edit Form -->
+        <div id="credentials-edit" class="hidden">
+            <form id="credentials-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">API Type</label>
+                        <input type="text" id="api-type-display" value="{{ service.name }}" disabled class="w-full px-4 py-2 bg-[#334155] border border-[#475569] rounded-lg text-[#f1f5f9] disabled:opacity-75 disabled:cursor-not-allowed">
+                        <input type="hidden" id="api-type" value="{{ service.name|lower }}">
+                        <p class="text-xs text-text-secondary mt-1">Automatically set to match this service</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2 flex items-center justify-between">
+                            <span>API URL</span>
+                            <button type="button" onclick="toggleApiUrlEdit()" id="edit-api-url-btn" class="text-xs px-2 py-1 bg-[#334155] border border-[#475569] rounded hover:bg-[#1e293b] text-[#3b82f6]">
+                                ✏️ Edit URL
+                            </button>
+                        </label>
+                        <input type="url" id="api-url" value="{{ service.api_url|default:service.url }}" placeholder="https://service.local:8080" disabled class="w-full px-4 py-2 bg-[#334155] border border-[#475569] rounded-lg text-[#f1f5f9] placeholder:text-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-75 disabled:cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Username</label>
+                        <input type="text" id="api-username" value="{{ service.api_username }}" placeholder="admin" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] placeholder:text-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <input type="password" id="api-password" value="{{ service.api_password }}" placeholder="••••••••" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] placeholder:text-[#cbd5e1] focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+                
+                <div class="bg-bg border border-border rounded-lg p-4">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        <div class="text-sm">
+                            <div class="font-medium mb-1">🔒 Credentials are encrypted</div>
+                            <div class="text-text-secondary">Your username and password are encrypted using industry-standard encryption before being stored in the database. They are never stored in plain text.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button type="button" onclick="saveCredentials()" class="flex-1 px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80">
+                        💾 Save Credentials
+                    </button>
+                    <button type="button" onclick="cancelCredentialsEdit()" class="flex-1 px-4 py-2 bg-bg border border-border rounded-lg hover:bg-bg-secondary">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    // Define service variables globally before any included scripts use them
+    const serviceId = {{ service.id }};
+    const serviceUrl = "{{ service.url }}";
+    const serviceName = "{{ service.name|lower }}";
+    console.log('[Service Detail] Variables defined:', {serviceId, serviceUrl, serviceName});
+    console.log('[Service Detail] API Type:', "{{ service.api_type }}");
+    console.log('[Service Detail] Has API:', {{ has_api|yesno:"true,false" }});
+    </script>
+    
+    {% if has_api %}
+    <!-- API Integration Section -->
+    <div class="bg-bg-secondary border border-border rounded-xl p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold">API Integration - {{ service.api_type|title }}</h2>
+            {% if service.api_detected and service.api_last_detected %}
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-text-secondary">
+                    Last detected: {{ service.api_last_detected|date:"Y-m-d H:i" }}
+                </div>
+                <button onclick="detectServiceApi()" id="detect-api-btn" class="px-4 py-2 bg-[#3b82f6] text-white rounded-lg hover:bg-[#2563eb] transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Re-detect API
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if not has_credentials %}
+        <div class="bg-warning/10 border border-warning/30 rounded-lg p-4 mb-6">
+            <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 text-warning mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div class="text-sm">
+                    <div class="font-medium mb-1">⚠️ Credentials Required</div>
+                    <div class="text-text-secondary">Please configure your API credentials above to use the API features. The dashboard and API calls will not work without valid credentials.</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Tabs -->
+        <div class="border-b border-border mb-6">
+            <nav class="flex space-x-4">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-button px-4 py-2 font-medium border-b-2 border-primary text-primary">
+                    Dashboard
+                </button>
+                <button onclick="switchTab('api-docs')" id="tab-api-docs" class="tab-button px-4 py-2 font-medium border-b-2 border-transparent text-text-secondary hover:text-text hover:border-border">
+                    API Documentation
+                </button>
+                <button onclick="switchTab('raw-api')" id="tab-raw-api" class="tab-button px-4 py-2 font-medium border-b-2 border-transparent text-text-secondary hover:text-text hover:border-border">
+                    Raw API Tester
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Contents -->
+        
+        <!-- Dashboard Tab -->
+        <div id="content-dashboard" class="tab-content">
+            {% if service.api_type == 'qbittorrent' %}
+                {% include 'dashboard/qbittorrent_dashboard.html' %}
+            {% else %}
+                <p class="text-text-secondary">Dashboard not available for this API type.</p>
+            {% endif %}
+        </div>
+
+        <!-- API Documentation Tab -->
+        <div id="content-api-docs" class="tab-content hidden">
+            <div class="space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">API Endpoints</h3>
+                    <button onclick="loadApiDocs()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80">
+                        Load Documentation
+                    </button>
+                </div>
+                <div id="api-docs-content" class="space-y-4">
+                    <p class="text-text-secondary">Click "Load Documentation" to view API endpoints</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw API Tester Tab -->
+        <div id="content-raw-api" class="tab-content hidden">
+            <div class="space-y-4">
+                <h3 class="text-xl font-bold mb-4">API Request Tester</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Quick Actions (or enter custom path below)</label>
+                        <select id="api-action" onchange="updateApiPath()" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] focus:outline-none focus:ring-2 focus:ring-primary [&>option]:bg-[#1e293b] [&>option]:text-[#f1f5f9]">
+                            <option value="">Select an action...</option>
+                            <option value="/api/v2/torrents/info">Get Torrents</option>
+                            <option value="/api/v2/transfer/info">Transfer Info</option>
+                            <option value="/api/v2/transfer/speedLimitsMode">Speed Limits</option>
+                            <option value="/api/v2/torrents/categories">Categories</option>
+                            <option value="/api/v2/app/version">App Version</option>
+                            <option value="/api/v2/app/preferences">App Preferences</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">API Path</label>
+                        <input type="text" id="api-path" placeholder="/api/v2/torrents/info" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] placeholder:text-[#cbd5e1] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                        <p class="text-xs text-text-secondary mt-1">Full API endpoint path (e.g., /api/v2/torrents/info)</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Method</label>
+                        <select id="api-method" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] focus:outline-none focus:ring-2 focus:ring-primary [&>option]:bg-[#1e293b] [&>option]:text-[#f1f5f9]">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Request Body (JSON, for POST requests)</label>
+                        <textarea id="api-body" rows="6" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] placeholder:text-[#cbd5e1] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder='{"key": "value"}'></textarea>
+                    </div>
+                    
+                    <button onclick="testRawApi()" class="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/80 font-medium">
+                        Send Request
+                    </button>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Response</label>
+                        <pre id="api-response" class="w-full px-4 py-2 bg-[#1e293b] border border-[#475569] rounded-lg text-[#f1f5f9] font-mono text-sm overflow-auto max-h-96"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- No API Integration Yet -->
+    <div class="bg-bg-secondary border border-border rounded-xl p-6 text-center">
+        <div class="text-4xl mb-4">📡</div>
+        <h3 class="text-xl font-bold mb-2">No API Integration Configured</h3>
+        <p class="text-text-secondary mb-4">This service doesn't have API integration set up yet. Click "Configure Credentials" above to get started.</p>
+        <button onclick="toggleCredentialsEdit()" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/80 font-medium">
+            🔑 Configure API Access
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Credentials Management
+function toggleCredentialsEdit() {
+    document.getElementById('credentials-display').classList.add('hidden');
+    document.getElementById('credentials-edit').classList.remove('hidden');
+    document.getElementById('edit-credentials-btn').classList.add('hidden');
+    
+    // Auto-populate API URL if not set
+    const apiUrlInput = document.getElementById('api-url');
+    if (!apiUrlInput.value || apiUrlInput.value === '') {
+        apiUrlInput.value = serviceUrl;
+    }
+}
+
+function cancelCredentialsEdit() {
+    document.getElementById('credentials-display').classList.remove('hidden');
+    document.getElementById('credentials-edit').classList.add('hidden');
+    document.getElementById('edit-credentials-btn').classList.remove('hidden');
+    
+    // Reset API URL field to disabled state
+    const apiUrlInput = document.getElementById('api-url');
+    apiUrlInput.disabled = true;
+    document.getElementById('edit-api-url-btn').style.display = 'block';
+}
+
+function toggleApiUrlEdit() {
+    const apiUrlInput = document.getElementById('api-url');
+    const editBtn = document.getElementById('edit-api-url-btn');
+    
+    if (apiUrlInput.disabled) {
+        apiUrlInput.disabled = false;
+        apiUrlInput.classList.remove('bg-[#334155]');
+        apiUrlInput.classList.add('bg-[#1e293b]');
+        apiUrlInput.focus();
+        editBtn.textContent = '🔒 Lock URL';
+    } else {
+        apiUrlInput.disabled = true;
+        apiUrlInput.classList.remove('bg-[#1e293b]');
+        apiUrlInput.classList.add('bg-[#334155]');
+        editBtn.textContent = '✏️ Edit URL';
+    }
+}
+
+async function saveCredentials() {
+    const apiType = serviceName;  // Auto-set from service name
+    const apiUrl = document.getElementById('api-url').value;
+    const apiUsername = document.getElementById('api-username').value;
+    const apiPassword = document.getElementById('api-password').value;
+    
+    if (!apiUrl) {
+        alert('Please fill in API URL');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/services/${serviceId}/credentials/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                api_type: apiType,
+                api_url: apiUrl,
+                api_username: apiUsername,
+                api_password: apiPassword
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Credentials saved successfully! The page will reload.');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (data.error || 'Failed to save credentials'));
+        }
+    } catch (error) {
+        alert('❌ Error: ' + error.message);
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function switchTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Reset all tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('border-primary', 'text-primary');
+        button.classList.add('border-transparent', 'text-text-secondary');
+    });
+    
+    // Show selected content
+    document.getElementById(`content-${tabName}`).classList.remove('hidden');
+    
+    // Highlight selected tab
+    const selectedTab = document.getElementById(`tab-${tabName}`);
+    selectedTab.classList.add('border-primary', 'text-primary');
+    selectedTab.classList.remove('border-transparent', 'text-text-secondary');
+}
+
+async function detectServiceApi() {
+    const btn = document.getElementById('detect-api-btn');
+    const originalHtml = btn.innerHTML;
+    
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = `
+        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Detecting...
+    `;
+    
+    try {
+        const response = await fetch(`/api/services/${serviceId}/detect-api/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success message
+            showNotification('success', data.message);
+            // Reload page to show updated info
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showNotification('warning', data.message || 'No API detected');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    } catch (error) {
+        showNotification('error', 'Error detecting API: ' + error.message);
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+function showNotification(type, message) {
+    const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+async function loadApiDocs() {
+    const docsContent = document.getElementById('api-docs-content');
+    docsContent.innerHTML = '<p class="text-text-secondary">Loading documentation...</p>';
+    
+    try {
+        const response = await fetch(`/api/services/${serviceId}/api-docs/`);
+        const data = await response.json();
+        
+        if (data.success) {
+            let html = `
+                <div class="space-y-6">
+                    <div class="bg-bg border border-border rounded-lg p-4">
+                        <h4 class="font-bold mb-4 flex items-center gap-2">
+                            <span class="text-2xl">📚</span>
+                            API Information
+                        </h4>
+                        <div class="space-y-2">
+                            <p><strong>Service:</strong> ${data.service}</p>
+                            <p><strong>Type:</strong> <code class="bg-bg-secondary px-2 py-1 rounded">${data.api_type}</code></p>
+                            <p><strong>API URL:</strong> <code class="bg-bg-secondary px-2 py-1 rounded text-xs break-all">${data.api_url}</code></p>
+                            <p><strong>Proxy URL:</strong> <code class="bg-bg-secondary px-2 py-1 rounded text-xs break-all">${data.proxy_url}</code></p>
+                            <p><strong>Official Documentation:</strong> <a href="${data.official_docs}" target="_blank" class="text-primary hover:text-primary/80">View Official Docs →</a></p>
+                        </div>
+                    </div>
+            `;
+            
+            // Check if we have detailed endpoint documentation
+            if (data.documentation && data.documentation.endpoints) {
+                html += `
+                    <div class="bg-bg border border-border rounded-lg p-4">
+                        <h4 class="font-bold mb-4 flex items-center gap-2">
+                            <span class="text-2xl">🔌</span>
+                            Available API Endpoints
+                        </h4>
+                        <p class="text-sm text-text-secondary mb-4">
+                            Use the proxy URL above with the <code class="bg-bg-secondary px-2 py-1 rounded">?path=</code> parameter. 
+                            Example: <code class="bg-bg-secondary px-2 py-1 rounded text-xs">${data.proxy_url}?path=/api/v2/torrents/info</code>
+                        </p>
+                `;
+                
+                // Render each category
+                for (const category of data.documentation.endpoints) {
+                    html += `
+                        <div class="mb-6">
+                            <h5 class="font-semibold text-lg mb-3 text-primary">${category.category}</h5>
+                            <div class="space-y-3">
+                    `;
+                    
+                    for (const endpoint of category.endpoints) {
+                        const methodColor = endpoint.method === 'GET' ? 'text-green-400' : 'text-blue-400';
+                        html += `
+                            <div class="bg-bg-secondary border border-border rounded-lg p-4">
+                                <div class="flex items-start gap-3 mb-2">
+                                    <span class="px-2 py-1 rounded text-xs font-bold ${methodColor} bg-bg border border-current">${endpoint.method}</span>
+                                    <div class="flex-1">
+                                        <h6 class="font-semibold">${endpoint.name}</h6>
+                                        <code class="text-xs text-text-secondary break-all">${endpoint.path}</code>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-text-secondary">${endpoint.description}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    </div>
+                `;
+            } else {
+                // No specific documentation available
+                html += `
+                    <div class="bg-warning/10 border border-warning/30 rounded-lg p-4">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-warning mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="text-sm">
+                                <div class="font-medium mb-1">Limited Documentation Available</div>
+                                <div class="text-text-secondary">${data.message || 'Specific endpoint documentation is not available for this API type. Please refer to the official documentation linked above.'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Add usage examples
+            html += `
+                <div class="bg-bg border border-border rounded-lg p-4">
+                    <h4 class="font-bold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">💻</span>
+                        Usage Examples
+                    </h4>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-semibold mb-2">JavaScript (in browser):</h5>
+                            <pre class="bg-bg-secondary p-3 rounded text-xs overflow-x-auto"><code>// GET request
+fetch('${data.proxy_url}?path=/api/v2/torrents/info')
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            console.log(data.data);
+        }
+    });
+
+// POST request
+const formData = new FormData();
+formData.append('hashes', 'torrent_hash');
+    
+fetch('${data.proxy_url}?path=/api/v2/torrents/pause', {
+    method: 'POST',
+    body: formData
+})
+    .then(r => r.json())
+    .then(data => console.log(data));</code></pre>
+                        </div>
+                        
+                        <div>
+                            <h5 class="font-semibold mb-2">Python (using GenericAPIClient):</h5>
+                            <pre class="bg-bg-secondary p-3 rounded text-xs overflow-x-auto"><code>from dashboard.generic_api_client import GenericAPIClient
+
+# Create client
+client = GenericAPIClient(
+    base_url='${data.api_url}',
+    username='your_username',
+    password='your_password'
+)
+
+# Make GET request
+torrents = client.get('/api/v2/torrents/info')
+
+# Make POST request
+result = client.post('/api/v2/torrents/pause', 
+                     data={'hashes': 'torrent_hash'})</code></pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            html += `</div>`;
+            docsContent.innerHTML = html;
+        } else {
+            docsContent.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+        }
+    } catch (error) {
+        docsContent.innerHTML = `<p class="text-danger">Error loading documentation: ${error.message}</p>`;
+    }
+}
+
+function updateApiPath() {
+    const action = document.getElementById('api-action').value;
+    const pathInput = document.getElementById('api-path');
+    if (action) {
+        pathInput.value = action;
+    }
+}
+
+async function testRawApi() {
+    const pathInput = document.getElementById('api-path');
+    const path = pathInput.value.trim();
+    const method = document.getElementById('api-method').value;
+    const body = document.getElementById('api-body').value;
+    const responseEl = document.getElementById('api-response');
+    
+    if (!path) {
+        responseEl.textContent = 'Please enter an API path';
+        return;
+    }
+    
+    responseEl.textContent = 'Sending request...';
+    
+    try {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        };
+        
+        if (method === 'POST' && body) {
+            options.body = body;
+        }
+        
+        const response = await fetch(`/api/services/${serviceId}/proxy/?path=${encodeURIComponent(path)}`, options);
+        const data = await response.json();
+        
+        responseEl.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+        responseEl.textContent = `Error: ${error.message}`;
+    }
+}
+</script>
+{% endblock %}

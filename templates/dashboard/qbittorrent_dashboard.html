@@ -1,0 +1,532 @@
+<!-- qBittorrent Dashboard Component -->
+<div class="space-y-6">
+    <!-- Transfer Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-bg border border-border rounded-lg p-4">
+            <div class="text-text-secondary text-sm mb-1">Download Speed</div>
+            <div class="text-2xl font-bold text-success" id="qb-dl-speed">-- KB/s</div>
+        </div>
+        <div class="bg-bg border border-border rounded-lg p-4">
+            <div class="text-text-secondary text-sm mb-1">Upload Speed</div>
+            <div class="text-2xl font-bold text-primary" id="qb-up-speed">-- KB/s</div>
+        </div>
+        <div class="bg-bg border border-border rounded-lg p-4">
+            <div class="text-text-secondary text-sm mb-1">Downloaded</div>
+            <div class="text-xl font-bold" id="qb-dl-data">-- GB</div>
+        </div>
+        <div class="bg-bg border border-border rounded-lg p-4">
+            <div class="text-text-secondary text-sm mb-1">Uploaded</div>
+            <div class="text-xl font-bold" id="qb-up-data">-- GB</div>
+        </div>
+    </div>
+
+    <!-- Torrent Controls -->
+    <div class="bg-bg border border-border rounded-lg p-4">
+        <h3 class="font-bold text-lg mb-4">Torrent Management</h3>
+        
+        <div class="flex gap-2 mb-4">
+            <button onclick="refreshTorrents()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80">
+                🔄 Refresh
+            </button>
+            <button onclick="showAddTorrentModal()" class="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80">
+                ➕ Add Torrent
+            </button>
+            <select id="torrent-filter" onchange="refreshTorrents()" class="px-4 py-2 bg-bg-secondary border border-border rounded-lg">
+                <option value="">All Torrents</option>
+                <option value="downloading">Downloading</option>
+                <option value="seeding">Seeding</option>
+                <option value="completed">Completed</option>
+                <option value="paused">Paused</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+
+        <!-- Torrents List -->
+        <div id="torrents-list" class="space-y-2">
+            <p class="text-text-secondary text-center py-8">Click refresh to load torrents</p>
+        </div>
+    </div>
+
+    <!-- Speed Limits -->
+    <div class="bg-bg border border-border rounded-lg p-4">
+        <h3 class="font-bold text-lg mb-4">Speed Limits</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Download Limit (KB/s, 0 = unlimited)</label>
+                <input type="number" id="dl-limit" class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg" placeholder="0">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2">Upload Limit (KB/s, 0 = unlimited)</label>
+                <input type="number" id="up-limit" class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg" placeholder="0">
+            </div>
+        </div>
+        <button onclick="updateSpeedLimits()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80">
+            Update Limits
+        </button>
+    </div>
+</div>
+
+<!-- Add Torrent Modal -->
+<div id="add-torrent-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-bg-secondary border border-border rounded-xl p-6 max-w-2xl w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Add Torrent</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Torrent URLs or Magnet Links (one per line)</label>
+                <textarea id="torrent-urls" rows="6" class="w-full px-4 py-2 bg-bg border border-border rounded-lg font-mono text-sm" placeholder="magnet:?xt=...&#10;https://example.com/file.torrent"></textarea>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="addTorrent()" class="flex-1 px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80">
+                    Add
+                </button>
+                <button onclick="hideAddTorrentModal()" class="flex-1 px-4 py-2 bg-bg border border-border rounded-lg hover:bg-bg-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Torrent Details Modal -->
+<div id="torrent-details-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-bg-secondary border border-border rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-bold" id="torrent-details-title">Torrent Details</h3>
+            <button onclick="hideTorrentDetailsModal()" class="text-text-secondary hover:text-text">✕</button>
+        </div>
+        <div id="torrent-details-content" class="space-y-4">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+window.qbAutoRefreshInterval = null;
+
+window.loadTransferInfo = async function() {
+    if (typeof serviceId === 'undefined') {
+        document.getElementById('qb-dl-speed').textContent = 'Error';
+        document.getElementById('qb-up-speed').textContent = 'Error';
+        document.getElementById('qb-dl-data').textContent = 'serviceId undefined';
+        document.getElementById('qb-up-data').textContent = '';
+        return;
+    }
+    
+    if (typeof window.formatBytes === 'undefined') {
+        document.getElementById('qb-dl-speed').textContent = 'Error';
+        document.getElementById('qb-up-speed').textContent = 'Error';
+        document.getElementById('qb-dl-data').textContent = 'formatBytes undefined';
+        document.getElementById('qb-up-data').textContent = '';
+        return;
+    }
+    
+    try {
+        const url = `/api/services/${serviceId}/proxy/?path=/api/v2/transfer/info`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            const info = data.data;
+            document.getElementById('qb-dl-speed').textContent = window.formatBytes(info.dl_info_speed, 1) + '/s';
+            document.getElementById('qb-up-speed').textContent = window.formatBytes(info.up_info_speed, 1) + '/s';
+            document.getElementById('qb-dl-data').textContent = window.formatBytes(info.dl_info_data);
+            document.getElementById('qb-up-data').textContent = window.formatBytes(info.up_info_data);
+        } else {
+            // Display error to user
+            document.getElementById('qb-dl-speed').textContent = 'API Error';
+            document.getElementById('qb-up-speed').textContent = 'API Error';
+            document.getElementById('qb-dl-data').textContent = (data.error || 'Unknown error').substring(0, 50);
+            document.getElementById('qb-up-data').textContent = '';
+        }
+    } catch (error) {
+        // Display error to user
+        document.getElementById('qb-dl-speed').textContent = 'Error';
+        document.getElementById('qb-up-speed').textContent = 'Error';
+        document.getElementById('qb-dl-data').textContent = error.message.substring(0, 50);
+        document.getElementById('qb-up-data').textContent = '';
+    }
+}
+
+window.refreshTorrents = async function() {
+    const filter = document.getElementById('torrent-filter').value;
+    const listEl = document.getElementById('torrents-list');
+    
+    if (typeof serviceId === 'undefined') {
+        listEl.innerHTML = '<p class="text-danger text-center py-4">Error: serviceId is not defined</p>';
+        return;
+    }
+    
+    listEl.innerHTML = '<p class="text-text-secondary text-center py-4">Loading torrents...</p>';
+    
+    try {
+        let url = `/api/services/${serviceId}/proxy/?path=/api/v2/torrents/info`;
+        if (filter) {
+            url += `&filter=${filter}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            const torrents = data.data;
+            
+            if (torrents.length === 0) {
+                listEl.innerHTML = '<p class="text-text-secondary text-center py-4">No torrents found</p>';
+                return;
+            }
+            
+            let html = '<div class="space-y-2">';
+            for (const torrent of torrents) {
+                const progress = (torrent.progress * 100).toFixed(1);
+                const stateColor = window.getStateColor(torrent.state);
+                
+                html += `
+                    <div class="bg-bg-secondary border border-border rounded-lg p-4 hover:border-primary cursor-pointer" onclick="window.showTorrentDetails('${torrent.hash}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <h4 class="font-semibold break-all">${window.escapeHtml(torrent.name)}</h4>
+                                <div class="flex gap-4 text-sm text-text-secondary mt-1">
+                                    <span>Size: ${window.formatBytes(torrent.size)}</span>
+                                    <span>Downloaded: ${window.formatBytes(torrent.downloaded)}</span>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-semibold ${stateColor} ml-2">${torrent.state.toUpperCase()}</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="w-full bg-bg rounded-full h-2">
+                                <div class="bg-primary h-2 rounded-full" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-text-secondary mt-1">
+                                <span>${progress}%</span>
+                                <span>↓ ${window.formatBytes(torrent.dlspeed)}/s ↑ ${window.formatBytes(torrent.upspeed)}/s</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="event.stopPropagation(); pauseTorrent('${torrent.hash}')" class="px-3 py-1 bg-warning/20 text-warning rounded hover:bg-warning/30 text-sm">
+                                ⏸ Pause
+                            </button>
+                            <button onclick="event.stopPropagation(); resumeTorrent('${torrent.hash}')" class="px-3 py-1 bg-success/20 text-success rounded hover:bg-success/30 text-sm">
+                                ▶ Resume
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteTorrent('${torrent.hash}')" class="px-3 py-1 bg-danger/20 text-danger rounded hover:bg-danger/30 text-sm">
+                                🗑 Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            listEl.innerHTML = html;
+        } else {
+            listEl.innerHTML = `<p class="text-danger text-center py-4">Error: ${data.error || 'Failed to load torrents'}</p>`;
+        }
+    } catch (error) {
+        listEl.innerHTML = `<p class="text-danger text-center py-4">Error: ${error.message}</p>`;
+    }
+}
+
+window.showTorrentDetails = async function(hash) {
+    const modal = document.getElementById('torrent-details-modal');
+    const content = document.getElementById('torrent-details-content');
+    
+    modal.classList.remove('hidden');
+    content.innerHTML = '<p class="text-text-secondary">Loading details...</p>';
+    
+    try {
+        const [propsRes, filesRes, trackersRes] = await Promise.all([
+            fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/properties&hash=${hash}`),
+            fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/files&hash=${hash}`),
+            fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/trackers&hash=${hash}`)
+        ]);
+        
+        const [propsData, filesData, trackersData] = await Promise.all([
+            propsRes.json(),
+            filesRes.json(),
+            trackersRes.json()
+        ]);
+        
+        let html = '';
+        
+        // Properties
+        if (propsData.success && propsData.data) {
+            const props = propsData.data;
+            document.getElementById('torrent-details-title').textContent = props.name || 'Torrent Details';
+            
+            html += `
+                <div class="bg-bg border border-border rounded-lg p-4">
+                    <h4 class="font-bold mb-2">Properties</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><strong>Save Path:</strong></div><div class="break-all">${window.escapeHtml(props.save_path)}</div>
+                        <div><strong>Created:</strong></div><div>${new Date(props.creation_date * 1000).toLocaleString()}</div>
+                        <div><strong>Total Size:</strong></div><div>${window.formatBytes(props.total_size)}</div>
+                        <div><strong>Pieces:</strong></div><div>${props.pieces_num} × ${window.formatBytes(props.piece_size)}</div>
+                        <div><strong>Comment:</strong></div><div class="break-all">${window.escapeHtml(props.comment || 'N/A')}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Files
+        if (filesData.success && filesData.data) {
+            html += `
+                <div class="bg-bg border border-border rounded-lg p-4">
+                    <h4 class="font-bold mb-2">Files (${filesData.data.length})</h4>
+                    <div class="space-y-1 max-h-60 overflow-y-auto">
+                        ${filesData.data.map(file => `
+                            <div class="text-sm flex justify-between">
+                                <span class="break-all">${window.escapeHtml(file.name)}</span>
+                                <span class="text-text-secondary ml-2 whitespace-nowrap">${window.formatBytes(file.size)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Trackers
+        if (trackersData.success && trackersData.data) {
+            html += `
+                <div class="bg-bg border border-border rounded-lg p-4">
+                    <h4 class="font-bold mb-2">Trackers (${trackersData.data.length})</h4>
+                    <div class="space-y-1 max-h-40 overflow-y-auto">
+                        ${trackersData.data.map(tracker => `
+                            <div class="text-sm break-all">${escapeHtml(tracker.url)}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        content.innerHTML = html;
+    } catch (error) {
+        content.innerHTML = `<p class="text-danger">Error loading details: ${error.message}</p>`;
+    }
+}
+
+window.hideTorrentDetailsModal = function() {
+    document.getElementById('torrent-details-modal').classList.add('hidden');
+}
+
+window.pauseTorrent = async function(hash) {
+    try {
+        const formData = new FormData();
+        formData.append('hashes', hash);
+        
+        const response = await fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/pause`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.refreshTorrents();
+        } else {
+            alert('Failed to pause torrent: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+window.resumeTorrent = async function(hash) {
+    try {
+        const formData = new FormData();
+        formData.append('hashes', hash);
+        
+        const response = await fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/resume`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.refreshTorrents();
+        } else {
+            alert('Failed to resume torrent: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+window.deleteTorrent = async function(hash) {
+    if (!confirm('Are you sure you want to delete this torrent? Files will NOT be deleted.')) {
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('hashes', hash);
+        formData.append('deleteFiles', 'false');
+        
+        const response = await fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/delete`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.refreshTorrents();
+        } else {
+            alert('Failed to delete torrent: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+window.showAddTorrentModal = function() {
+    document.getElementById('add-torrent-modal').classList.remove('hidden');
+}
+
+window.hideAddTorrentModal = function() {
+    document.getElementById('add-torrent-modal').classList.add('hidden');
+    document.getElementById('torrent-urls').value = '';
+}
+
+window.addTorrent = async function() {
+    const urls = document.getElementById('torrent-urls').value.trim().split('\n').filter(u => u);
+    
+    if (urls.length === 0) {
+        alert('Please enter at least one URL or magnet link');
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('urls', urls.join('\n'));
+        
+        const response = await fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/torrents/add`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            window.hideAddTorrentModal();
+            window.refreshTorrents();
+            alert('Torrent(s) added successfully!');
+        } else {
+            alert('Failed to add torrent(s): ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+window.updateSpeedLimits = async function() {
+    const dlLimit = parseInt(document.getElementById('dl-limit').value) * 1024; // Convert KB/s to bytes/s
+    const upLimit = parseInt(document.getElementById('up-limit').value) * 1024;
+    
+    try {
+        // qBittorrent requires separate API calls for download and upload limits
+        const dlFormData = new FormData();
+        dlFormData.append('limit', dlLimit);
+        
+        const upFormData = new FormData();
+        upFormData.append('limit', upLimit);
+        
+        const [dlResponse, upResponse] = await Promise.all([
+            fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/transfer/setDownloadLimit`, {
+                method: 'POST',
+                body: dlFormData
+            }),
+            fetch(`/api/services/${serviceId}/proxy/?path=/api/v2/transfer/setUploadLimit`, {
+                method: 'POST',
+                body: upFormData
+            })
+        ]);
+        
+        const dlData = await dlResponse.json();
+        const upData = await upResponse.json();
+        
+        if (dlData.success && upData.success) {
+            alert('Speed limits updated successfully!');
+        } else {
+            alert('Failed to update speed limits');
+        }
+        
+        if (data.success) {
+            alert('Speed limits updated successfully!');
+        } else {
+            alert('Failed to update speed limits: ' + data.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+window.formatBytes = function(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+window.getStateColor = function(state) {
+    const colors = {
+        'downloading': 'bg-primary/20 text-primary',
+        'stalledDL': 'bg-warning/20 text-warning',
+        'uploading': 'bg-success/20 text-success',
+        'stalledUP': 'bg-success/20 text-success',
+        'pausedDL': 'bg-text-secondary/20 text-text-secondary',
+        'pausedUP': 'bg-text-secondary/20 text-text-secondary',
+        'queuedDL': 'bg-info/20 text-info',
+        'queuedUP': 'bg-info/20 text-info',
+        'checkingDL': 'bg-info/20 text-info',
+        'checkingUP': 'bg-info/20 text-info',
+        'error': 'bg-danger/20 text-danger',
+        'missingFiles': 'bg-danger/20 text-danger',
+        'allocating': 'bg-info/20 text-info',
+    };
+    return colors[state] || 'bg-bg/20 text-text';
+}
+
+window.escapeHtml = function(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Auto-refresh every 5 seconds when on dashboard tab
+window.startQBAutoRefresh = function() {
+    // Clear any existing interval
+    if (window.qbAutoRefreshInterval) {
+        clearInterval(window.qbAutoRefreshInterval);
+    }
+    
+    // Immediate first load
+    window.loadTransferInfo();
+    window.refreshTorrents();
+    
+    // Set up interval for continued updates
+    window.qbAutoRefreshInterval = setInterval(function() {
+        window.loadTransferInfo();
+        
+        // Refresh torrents every other interval (10 seconds)
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (currentTime % 10 === 0) {
+            window.refreshTorrents();
+        }
+    }, 5000);
+}
+
+// Initialize when dashboard becomes visible or page loads
+window.initQBittorrentDashboard = function() {
+    if (!window.qbDashboardInitialized) {
+        window.qbDashboardInitialized = true;
+        window.startQBAutoRefresh();
+        console.log('qBittorrent dashboard initialized - auto-refresh active');
+    }
+}
+
+// Run initialization after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initQBittorrentDashboard);
+} else {
+    window.initQBittorrentDashboard();
+}
+</script>

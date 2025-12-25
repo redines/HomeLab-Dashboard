@@ -14,3 +14,6 @@ python-dateutil==2.8.2
 
 # Health Check Support
 psutil==5.9.6
+
+# Encryption
+cryptography==42.0.5

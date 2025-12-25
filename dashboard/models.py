@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from .encryption import EncryptedCharField, EncryptedTextField
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,13 @@ class Service(models.Model):
         ('other', 'Other'),
     ]
     
+    API_TYPE_CHOICES = [
+        ('qbittorrent', 'qBittorrent'),
+        ('sonarr', 'Sonarr'),
+        ('radarr', 'Radarr'),
+        ('custom', 'Custom'),
+    ]
+    
     name = models.CharField(max_length=255, unique=True)
     url = models.URLField(max_length=500)
     status = models.CharField(max_length=20, choices=SERVICE_STATUS_CHOICES, default='unknown')
@@ -42,6 +50,16 @@ class Service(models.Model):
     # Traefik specific
     traefik_router_name = models.CharField(max_length=255, blank=True)
     traefik_service_name = models.CharField(max_length=255, blank=True)
+    
+    # API integration
+    api_url = models.URLField(max_length=500, blank=True, help_text='API endpoint URL for this service')
+    api_key = EncryptedTextField(blank=True, help_text='API key or token for authentication')
+    api_username = EncryptedCharField(max_length=255, blank=True, help_text='API username for authentication')
+    api_password = EncryptedCharField(max_length=255, blank=True, help_text='API password for authentication')
+    api_type = models.CharField(max_length=50, blank=True, choices=API_TYPE_CHOICES, help_text='Type of API integration')
+    api_detected = models.BooleanField(default=False, help_text='Whether API was automatically detected')
+    api_endpoint = models.CharField(max_length=255, blank=True, help_text='Detected API endpoint path')
+    api_last_detected = models.DateTimeField(null=True, blank=True, help_text='When API was last detected/verified')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
