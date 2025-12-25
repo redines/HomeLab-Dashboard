@@ -113,11 +113,34 @@ The dashboard displays your services as cards showing:
 - Tags and metadata
 - Direct link to service URL
 
+## Keyboard Shortcuts
+
+- **Press 'R'** - Refresh all services (when not typing in input fields)
+
 ## Requirements
 
 - **Docker Method**: Docker and Docker Compose
 - **Local Method**: Python 3.12+
-- **Required**: Traefik with API enabled
+- **Optional**: Traefik with API enabled (for auto-discovery)
+
+## Key Features
+
+### Flexible URL Input
+Add services easily with flexible URL formats:
+- `plex.example.com` - Protocol added automatically
+- `192.168.1.100:8080` - IP addresses with ports supported
+- `http://service.local` - Explicit protocol preserved
+- **Smart fallback**: Tries HTTPS first, falls back to HTTP if needed
+
+### Smart API Detection
+- Automatically detects service APIs
+- Throttles detection after 5 failed attempts (retries every 5 minutes)
+- Reduces log spam and network traffic
+
+### Automatic Mode Detection
+- No manual configuration for Traefik enable/disable
+- Seamlessly switches between Traefik and manual mode
+- Works out of the box whether you have Traefik or not
 
 ## Contributing
 

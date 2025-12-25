@@ -6,7 +6,9 @@ Get your HomeLab Dashboard up and running in 3 minutes!
 
 - Docker and Docker Compose installed (for Docker method)
 - Python 3.12+ (for local development method)
-- Traefik running with API enabled
+- **Optional**: Traefik running with API enabled (for auto-discovery)
+
+**Note**: Traefik is optional! The dashboard works perfectly without it using manual service management.
 
 ## Option 1: Docker (Recommended)
 

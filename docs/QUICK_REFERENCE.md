@@ -3,14 +3,14 @@
 ## Environment Variables
 
 ```bash
-# Disable Traefik integration (use manual services only)
-TRAEFIK_ENABLED=False
-
-# Enable Traefik integration (default)
-TRAEFIK_ENABLED=True
+# Traefik integration (automatic detection)
+# Leave empty or unset for manual-only mode
 TRAEFIK_API_URL=http://traefik:8080/api
 TRAEFIK_API_USERNAME=your_username  # Optional
 TRAEFIK_API_PASSWORD=your_password  # Optional
+
+# App automatically detects if Traefik is available
+# No manual enable/disable needed!
 ```
 
 ## API Endpoints
@@ -22,11 +22,11 @@ Content-Type: application/json
 
 {
   "name": "Service Name",
-  "url": "https://service.com",
+  "url": "service.com",  // Flexible: protocol auto-added, IPs/ports supported
   "description": "Optional description",
   "icon": "🔧",
   "service_type": "docker",
-  "provider": "manual",
+  "provider": "local",  // or "external"
   "tags": "tag1, tag2"
 }
 ```
@@ -78,7 +78,7 @@ Response:
 
 | Provider | Description |
 |----------|-------------|
-| `manual` | Manually added service |
+| `local` | Manually added service in your homelab |
 | `external` | External service (not in homelab) |
 | `traefik` | Auto-discovered from Traefik |
 

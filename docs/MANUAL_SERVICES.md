@@ -50,10 +50,15 @@ The app will automatically detect if Traefik is responding and use it.
 
 ### Through the Web UI
 
-1. Click the **"➕ Add Service"** button in the header
+1. Click the **"➕ Add Service"** button in the header (or press **'R'** to refresh services)
 2. Fill in the service details:
    - **Service Name** (required) - e.g., "Plex", "Google", "GitHub"
-   - **Service URL** (required) - e.g., "https://plex.example.com" or "https://google.com"
+   - **Service URL** (required) - Flexible format:
+     - Domain: `plex.example.com`
+     - IP with port: `192.168.1.100:8080`
+     - Full URL: `https://service.com`
+     - Protocol auto-added: `https://` is added automatically if not specified
+     - **HTTP fallback**: If HTTPS fails, HTTP is tried automatically
    - **Description** (optional) - Brief description of the service
    - **Icon** (optional) - An emoji to represent the service (e.g., 🎬)
    - **Service Type** - Choose from:
@@ -64,12 +69,16 @@ The app will automatically detect if Traefik is responding and use it.
      - External Service (for services outside your homelab)
      - Other
    - **Provider** - Choose from:
-     - Manual
-     - External
+     - **Local** - Services running in your homelab
+     - **External** - Internet services outside your homelab
    - **Tags** (optional) - Comma-separated tags (e.g., "media, streaming, movies")
 
 3. Click **"Add Service"**
 4. The service will be added and its health will be checked immediately
+
+### Keyboard Shortcuts
+
+- **Press 'R'** - Refresh all services (when not typing in a field)
 
 ### Service Types
 
@@ -99,11 +108,11 @@ The app will automatically detect if Traefik is responding and use it.
 
 ```
 Name: Plex Media Server
-URL: https://plex.yourdomain.com
+URL: plex.yourdomain.com  (https:// will be added automatically)
 Description: Personal media streaming server
 Icon: 🎬
 Service Type: Docker
-Provider: Manual
+Provider: Local
 Tags: media, streaming, entertainment
 ```
 
@@ -111,7 +120,7 @@ Tags: media, streaming, entertainment
 
 ```
 Name: GitHub
-URL: https://github.com
+URL: github.com  (https:// will be added automatically)
 Description: Code repository and collaboration platform
 Icon: 🐙
 Service Type: External Service
@@ -119,15 +128,15 @@ Provider: External
 Tags: development, git, code
 ```
 
-### Adding a Local Network Service
+### Adding a Local Network Service with IP and Port
 
 ```
 Name: Home Assistant
-URL: http://192.168.1.100:8123
+URL: 192.168.1.100:8123  (https:// tried first, falls back to http:// if needed)
 Description: Home automation hub
 Icon: 🏠
 Service Type: Docker
-Provider: Manual
+Provider: Local
 Tags: automation, iot, smart-home
 ```
 
@@ -146,6 +155,22 @@ The dashboard considers several HTTP status codes as "up":
 - 403: Forbidden (service is up, access denied)
 - 405: Method Not Allowed (service is up, doesn't accept GET)
 
+### Smart Protocol Detection
+
+When adding a service, the dashboard automatically handles protocol selection:
+
+1. **Default**: `https://` is added if no protocol is specified
+2. **HTTPS First**: Always tries HTTPS first (secure by default)
+3. **HTTP Fallback**: If HTTPS fails with connection error, automatically tries HTTP
+4. **Auto-Update**: If HTTP works, the service URL is updated to use HTTP
+5. **Logging**: All protocol changes are logged for transparency
+
+**Example:**
+- You add: `192.168.1.100:8080`
+- System tries: `https://192.168.1.100:8080`
+- If it fails, tries: `http://192.168.1.100:8080`
+- If HTTP works: URL updated to `http://192.168.1.100:8080`
+
 ## API Integration
 
 Manual services support the same API integration features as Traefik-discovered services:
@@ -154,6 +179,16 @@ Manual services support the same API integration features as Traefik-discovered 
 2. Click **"🔑 Configure Credentials"**
 3. Enter API credentials if the service has an API
 4. Use the API dashboard to interact with the service
+
+### API Detection Throttling
+
+To reduce unnecessary network traffic and log spam, the dashboard implements smart API detection:
+
+- Services are probed for API availability on first sync
+- After **5 failed detection attempts**, probing is throttled
+- Throttled services are rechecked every **5 minutes**
+- Pressing "Refresh Services" respects throttling (use `--force` flag to override)
+- Successfully detecting an API resets the counter
 
 ## Mixed Environment
 
@@ -188,7 +223,47 @@ If a service shows as "Down" but you know it's running:
 1. Check the URL is correct
 2. Verify network connectivity
 3. Check if the service requires authentication
-4. Look at the browser console for error details
+4. Look at the logs for detailed error messages
+5. **Note**: The system automatically tries HTTP if HTTPS fails
+
+### URL Format Issues
+
+The dashboard is flexible with URL formats:
+- ✅ `service.com` - Works! Protocol added automatically
+- ✅ `192.168.1.100:8080` - Works! IP addresses with ports supported
+- ✅ `http://service.local` - Works! Explicit protocol respected
+- ✅ `https://service.com` - Works! HTTPS explicitly specified
+
+## Recent Improvements (December 2025)
+
+### Smart Protocol Detection
+- Automatically adds `https://` if no protocol specified
+- Falls back to `http://` if HTTPS connection fails
+- Updates service URL automatically to working protocol
+- Logs all protocol changes for transparency
+
+### Flexible URL Input
+- Accepts domain names, IP addresses, and ports
+- No need to type `http://` or `https://`
+- Works with local network addresses
+- Validation happens on the backend
+
+### API Detection Throttling
+- Reduces network traffic for services without APIs
+- After 5 failed attempts, waits 5 minutes before retrying
+- Prevents log spam
+- Manual refresh with `--force` flag bypasses throttling
+
+### Provider Type Update
+- Changed from "Manual" to "Local" for better clarity
+- "Local" = services in your homelab
+- "External" = services on the internet
+- Automatic backward compatibility for existing services
+
+### Keyboard Shortcuts
+- Press 'R' to refresh all services
+- Only works when not typing in input fields
+- Provides quick access without mouse clicks
 
 ### Cannot Edit or Delete a Service
 

@@ -9,10 +9,12 @@ Configure the dashboard using environment variables in `.env` file or `docker-co
 | `DEBUG` | Django debug mode | `False` |
 | `DJANGO_SECRET_KEY` | Django secret key | (required in production) |
 | `ALLOWED_HOSTS` | Comma-separated list of allowed hosts | `localhost,127.0.0.1` |
-| `TRAEFIK_API_URL` | Traefik API endpoint | `http://traefik:8080/api` |
+| `TRAEFIK_API_URL` | Traefik API endpoint (optional) | `` |
 | `TRAEFIK_API_USERNAME` | Traefik API username (if auth enabled) | `` |
 | `TRAEFIK_API_PASSWORD` | Traefik API password (if auth enabled) | `` |
 | `SERVICE_REFRESH_INTERVAL` | Auto-refresh interval in seconds | `60` |
+
+**Note**: Traefik configuration is optional. The dashboard automatically detects if Traefik is available and falls back to manual mode if not.
 
 ## API Detection
 
@@ -53,8 +55,10 @@ For services requiring authentication or custom API endpoints, configure credent
 ### API Re-detection
 
 - APIs are cached for 7 days to avoid unnecessary probing
+- After 5 failed detection attempts, probing is throttled to every 5 minutes
 - Force re-detection via CLI: `python manage.py detect_apis --force`
 - Force re-detection via UI: Click "Re-detect API" button on service detail page
+- Regular refresh respects throttling to reduce network traffic
 
 ## Traefik Configuration
 

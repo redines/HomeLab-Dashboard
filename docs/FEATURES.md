@@ -56,7 +56,16 @@
 
 ### Management Commands
 - [x] sync_services command
+- [x] detect_apis command with force option
 - [x] Standard Django commands support
+
+### Smart Features
+- [x] **Automatic Mode Detection**: No manual Traefik enable/disable needed
+- [x] **Flexible URL Input**: Accepts domains, IPs with ports, with or without protocol
+- [x] **HTTP Fallback**: Automatically tries HTTP if HTTPS fails
+- [x] **API Detection Throttling**: Smart rate limiting after 5 failed attempts (retries after 5 minutes)
+- [x] **Keyboard Shortcuts**: Press 'R' to refresh (when not typing)
+- [x] **Provider Types**: Local vs External service distinction
 
 ### Docker Support
 - [x] Dockerfile with Python 3.12

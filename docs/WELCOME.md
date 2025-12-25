@@ -5,9 +5,11 @@ Congratulations! Your HomeLab Dashboard project is successfully set up and ready
 ## What You Got
 
 ✅ Complete Django 5.1 Application  
-✅ Traefik Service Discovery Integration  
+✅ **Optional** Traefik Service Discovery Integration  
+✅ **Manual Service Management** - No Traefik required!  
 ✅ Beautiful Dark Theme Dashboard  
 ✅ Real-time Health Monitoring  
+✅ **Smart Features**: HTTP fallback, API throttling, keyboard shortcuts  
 ✅ Docker & Docker Compose Support  
 ✅ RESTful API Endpoints  
 ✅ Admin Interface  
