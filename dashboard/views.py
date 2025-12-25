@@ -5,13 +5,28 @@ from .models import Service, HealthCheck
 from .traefik_service import sync_traefik_services
 from django.utils import timezone
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
+
+
+def check_all_services_health():
+    """Background task to check health of all services."""
+    services = Service.objects.all()
+    for service in services:
+        try:
+            service.check_health()
+        except Exception as e:
+            logger.error(f"Error checking health for {service.name}: {e}")
 
 
 def dashboard(request):
     """Main dashboard view."""
     services = Service.objects.all().order_by('name')
+    
+    # Trigger async health check in background thread
+    health_check_thread = threading.Thread(target=check_all_services_health, daemon=True)
+    health_check_thread.start()
     
     context = {
         'services': services,

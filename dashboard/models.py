@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Service(models.Model):
@@ -53,21 +56,105 @@ class Service(models.Model):
         """Check the health status of the service."""
         import requests
         from datetime import datetime
+        import urllib3
+        
+        # Suppress only the single InsecureRequestWarning from urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        old_status = self.status
+        
+        def is_service_up(status_code):
+            """
+            Determine if service is up based on status code.
+            Many services return 3xx, 401, or 403 when up but requiring auth/redirect.
+            """
+            # 2xx - Success
+            if 200 <= status_code < 300:
+                return True
+            # 3xx - Redirect (service is responding)
+            if 300 <= status_code < 400:
+                return True
+            # 401 - Unauthorized (service is up, needs auth)
+            if status_code == 401:
+                return True
+            # 403 - Forbidden (service is up, access denied - common for dashboards)
+            if status_code == 403:
+                return True
+            # 405 - Method Not Allowed (service is up, just doesn't like GET)
+            if status_code == 405:
+                return True
+            # Everything else (404, 5xx) is considered down
+            return False
         
         try:
             start_time = datetime.now()
-            response = requests.get(self.url, timeout=5, allow_redirects=True)
+            logger.info(f"Checking health for {self.name} at {self.url}")
+            
+            # Set a reasonable timeout and allow redirects
+            response = requests.get(
+                self.url, 
+                timeout=5, 
+                allow_redirects=True, 
+                verify=True,  # Use SSL verification for valid certificates
+                headers={'User-Agent': 'HomeLab-Dashboard/1.0'}
+            )
             end_time = datetime.now()
             
             self.response_time = int((end_time - start_time).total_seconds() * 1000)
             
-            if response.status_code < 400:
+            if is_service_up(response.status_code):
                 self.status = 'up'
+                logger.info(f"✓ {self.name}: UP (status={response.status_code}, time={self.response_time}ms)")
             else:
                 self.status = 'down'
-        except Exception:
+                logger.warning(f"✗ {self.name}: DOWN (status={response.status_code})")
+                
+        except requests.exceptions.SSLError as e:
+            # SSL error - might be self-signed cert, try without verification
+            logger.warning(f"SSL error for {self.name}, retrying without verification: {e}")
+            try:
+                start_time = datetime.now()
+                response = requests.get(
+                    self.url, 
+                    timeout=5, 
+                    allow_redirects=True, 
+                    verify=False,
+                    headers={'User-Agent': 'HomeLab-Dashboard/1.0'}
+                )
+                end_time = datetime.now()
+                
+                self.response_time = int((end_time - start_time).total_seconds() * 1000)
+                
+                if is_service_up(response.status_code):
+                    self.status = 'up'
+                    logger.info(f"✓ {self.name}: UP (no SSL verify, status={response.status_code}, time={self.response_time}ms)")
+                else:
+                    self.status = 'down'
+                    logger.warning(f"✗ {self.name}: DOWN (status={response.status_code})")
+            except Exception as e2:
+                logger.error(f"✗ {self.name}: FAILED even without SSL verification - {type(e2).__name__}: {e2}")
+                self.status = 'down'
+                self.response_time = None
+                
+        except requests.exceptions.Timeout as e:
+            logger.error(f"✗ {self.name}: TIMEOUT after 5s - {self.url}")
             self.status = 'down'
             self.response_time = None
+            
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"✗ {self.name}: CONNECTION ERROR - {type(e).__name__}: {str(e)[:100]}")
+            self.status = 'down'
+            self.response_time = None
+            
+        except Exception as e:
+            logger.error(f"✗ {self.name}: UNEXPECTED ERROR - {type(e).__name__}: {str(e)[:100]}")
+            self.status = 'down'
+            self.response_time = None
+        
+        # Track status changes
+        if old_status != self.status:
+            self.status_changed_at = timezone.now()
+            logger.info(f"Status changed for {self.name}: {old_status} → {self.status}")
         
         self.last_checked = timezone.now()
         self.save()

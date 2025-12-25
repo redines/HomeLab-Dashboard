@@ -41,6 +41,16 @@ else
     python manage.py migrate
 fi
 
+# Install node dependencies if needed
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing Node dependencies..."
+    npm install
+fi
+
+# Build Tailwind CSS initially
+echo "🎨 Building Tailwind CSS..."
+npm run build:css > /dev/null 2>&1
+
 # Collect static files
 echo "📦 Collecting static files..."
 python manage.py collectstatic --noinput --clear > /dev/null 2>&1 || true
@@ -55,11 +65,11 @@ echo ""
 echo "💡 Useful commands:"
 echo "   - Sync services: python manage.py sync_services"
 echo "   - Create superuser: python manage.py createsuperuser"
-echo "   - Stop server: Press Ctrl+C"
+echo "   - Stop servers: Press Ctrl+C"
 echo ""
-echo "🚀 Starting development server..."
+echo "🚀 Starting development server with Tailwind watch..."
 echo "=================================================="
 echo ""
 
-# Start the development server
-python manage.py runserver
+# Start both the Tailwind watcher and development server
+npm run dev

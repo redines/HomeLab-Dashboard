@@ -84,6 +84,9 @@ async function fetchServicesData() {
         // Update stats
         updateStats(data);
         
+        // Update service cards
+        updateServiceCards(data.services);
+        
         // Update last updated time
         const lastUpdated = document.getElementById('last-updated');
         if (lastUpdated) {
@@ -109,6 +112,49 @@ function updateStats(data) {
     if (downServices) downServices.textContent = downCount;
 }
 
+// Update service cards in the grid
+function updateServiceCards(services) {
+    services.forEach(service => {
+        const card = document.querySelector(`[data-service-id="${service.id}"]`);
+        if (!card) return;
+        
+        // Update status badge
+        const statusBadge = card.querySelector('span[class*="status-"]');
+        if (statusBadge) {
+            // Remove old status classes
+            statusBadge.className = statusBadge.className.replace(/bg-\w+\/20/g, '').replace(/text-\w+/g, '');
+            
+            // Add new status classes
+            if (service.status === 'up') {
+                statusBadge.className = 'px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wide bg-success/20 text-success';
+            } else if (service.status === 'down') {
+                statusBadge.className = 'px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wide bg-danger/20 text-danger';
+            } else {
+                statusBadge.className = 'px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wide bg-warning/20 text-warning';
+            }
+            statusBadge.textContent = service.status.toUpperCase();
+        }
+        
+        // Update card border color
+        card.className = card.className.replace(/border-l-\w+/g, '');
+        if (service.status === 'up') {
+            card.classList.add('border-l-success');
+        } else if (service.status === 'down') {
+            card.classList.add('border-l-danger');
+        } else {
+            card.classList.add('border-l-warning');
+        }
+        
+        // Update response time if available
+        if (service.response_time) {
+            const responseTimeEl = card.querySelector('.meta-item:last-child .meta-value');
+            if (responseTimeEl) {
+                responseTimeEl.textContent = `${service.response_time}ms`;
+            }
+        }
+    });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     // Attach refresh button event
@@ -116,6 +162,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', refreshServices);
     }
+    
+    // Auto-fetch updated data after page load (wait 2 seconds for health checks to complete)
+    setTimeout(async () => {
+        await fetchServicesData();
+    }, 2000);
+    
+    // Poll for updates every 10 seconds for the first minute after page load
+    let pollCount = 0;
+    const pollInterval = setInterval(async () => {
+        await fetchServicesData();
+        pollCount++;
+        
+        // Stop polling after 6 iterations (60 seconds)
+        if (pollCount >= 6) {
+            clearInterval(pollInterval);
+            console.log('Initial polling complete');
+        }
+    }, 10000);
     
     // Start auto-refresh (every 5 minutes)
     // Uncomment to enable auto-refresh

@@ -2,84 +2,84 @@
 {% load static %}
 
 {% block content %}
-<div class="dashboard-header">
-    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-content">
-                <div class="stat-value" id="total-services">{{ total_services }}</div>
-                <div class="stat-label">Total Services</div>
+<div class="my-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-bg-secondary border border-border rounded-xl p-6 flex items-center gap-4 shadow-md transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl">
+            <div class="text-4xl">📊</div>
+            <div>
+                <div class="text-3xl font-bold leading-none" id="total-services">{{ total_services }}</div>
+                <div class="text-sm text-text-secondary mt-1">Total Services</div>
             </div>
         </div>
-        <div class="stat-card stat-success">
-            <div class="stat-icon">✅</div>
-            <div class="stat-content">
-                <div class="stat-value" id="up-services">{{ up_services }}</div>
-                <div class="stat-label">Services Up</div>
+        <div class="bg-bg-secondary border border-border rounded-xl p-6 flex items-center gap-4 shadow-md transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl">
+            <div class="text-4xl">✅</div>
+            <div>
+                <div class="text-3xl font-bold leading-none text-success" id="up-services">{{ up_services }}</div>
+                <div class="text-sm text-text-secondary mt-1">Services Up</div>
             </div>
         </div>
-        <div class="stat-card stat-danger">
-            <div class="stat-icon">❌</div>
-            <div class="stat-content">
-                <div class="stat-value" id="down-services">{{ down_services }}</div>
-                <div class="stat-label">Services Down</div>
+        <div class="bg-bg-secondary border border-border rounded-xl p-6 flex items-center gap-4 shadow-md transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-xl">
+            <div class="text-4xl">❌</div>
+            <div>
+                <div class="text-3xl font-bold leading-none text-danger" id="down-services">{{ down_services }}</div>
+                <div class="text-sm text-text-secondary mt-1">Services Down</div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="services-grid" id="services-grid">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" id="services-grid">
     {% for service in services %}
-    <div class="service-card {% if service.status == 'up' %}status-up{% elif service.status == 'down' %}status-down{% else %}status-unknown{% endif %}" 
+    <div class="bg-bg-secondary border-2 {% if service.status == 'up' %}border-l-4 border-l-success border-border{% elif service.status == 'down' %}border-l-4 border-l-danger border-border{% else %}border-l-4 border-l-warning border-border{% endif %} rounded-xl p-6 cursor-pointer transition-all duration-300 flex flex-col gap-4 shadow-md hover:-translate-y-1 hover:shadow-xl hover:border-primary" 
          data-service-id="{{ service.id }}"
          onclick="openService('{{ service.url }}')">
-        <div class="service-header">
-            <div class="service-icon">
+        <div class="flex justify-between items-center">
+            <div class="text-3xl">
                 {% if service.icon %}
                     {{ service.icon }}
                 {% else %}
                     🔧
                 {% endif %}
             </div>
-            <div class="service-status">
-                <span class="status-badge status-{{ service.status }}">
+            <div>
+                <span class="px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wide {% if service.status == 'up' %}bg-success/20 text-success{% elif service.status == 'down' %}bg-danger/20 text-danger{% else %}bg-warning/20 text-warning{% endif %}">
                     {{ service.status|upper }}
                 </span>
             </div>
         </div>
-        <div class="service-body">
-            <h3 class="service-name">{{ service.name }}</h3>
+        <div class="flex-1">
+            <h3 class="text-xl font-semibold mb-2 text-text-primary">{{ service.name }}</h3>
             {% if service.description %}
-            <p class="service-description">{{ service.description }}</p>
+            <p class="text-sm text-text-secondary mb-4">{{ service.description }}</p>
             {% endif %}
-            <div class="service-meta">
-                <div class="meta-item">
-                    <span class="meta-label">Type:</span>
-                    <span class="meta-value">{{ service.get_service_type_display }}</span>
+            <div class="flex flex-wrap gap-4 mb-3">
+                <div class="text-xs">
+                    <span class="text-text-secondary">Type:</span>
+                    <span class="text-text-primary font-medium ml-1">{{ service.get_service_type_display }}</span>
                 </div>
                 {% if service.response_time %}
-                <div class="meta-item">
-                    <span class="meta-label">Response:</span>
-                    <span class="meta-value">{{ service.response_time }}ms</span>
+                <div class="text-xs">
+                    <span class="text-text-secondary">Response:</span>
+                    <span class="text-text-primary font-medium ml-1">{{ service.response_time }}ms</span>
                 </div>
                 {% endif %}
             </div>
             {% if service.tags %}
-            <div class="service-tags">
+            <div class="flex flex-wrap gap-2 mt-3">
                 {% for tag in service.tags.split %}
                     {% if tag %}
-                    <span class="tag">{{ tag }}</span>
+                    <span class="bg-bg-card text-text-secondary px-3 py-1 rounded-xl text-xs font-medium">{{ tag }}</span>
                     {% endif %}
                 {% endfor %}
             </div>
             {% endif %}
         </div>
-        <div class="service-footer">
-            <small class="service-url">{{ service.url }}</small>
+        <div class="border-t border-border pt-3 flex flex-col gap-1">
+            <small class="text-text-secondary text-xs break-all">{{ service.url }}</small>
             {% if service.last_checked %}
-            <small class="service-checked">Checked: {{ service.last_checked|timesince }} ago</small>
+            <small class="text-text-secondary text-xs">Checked: {{ service.last_checked|timesince }} ago</small>
             {% endif %}
-            <small class="service-checked">
+            <small class="text-text-secondary text-xs">
                 Status changed: 
                 {% if service.status_changed_at %}
                     {{ service.status_changed_at|date:"Y-m-d H:i:s" }}
@@ -90,17 +90,17 @@
         </div>
     </div>
     {% empty %}
-    <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <h2>No Services Found</h2>
-        <p>Click the "Refresh Services" button to discover services from Traefik.</p>
+    <div class="col-span-full text-center py-16 bg-bg-secondary rounded-xl border-2 border-dashed border-border">
+        <div class="text-6xl mb-4">📭</div>
+        <h2 class="text-2xl mb-2">No Services Found</h2>
+        <p class="text-text-secondary">Click the "Refresh Services" button to discover services from Traefik.</p>
     </div>
     {% endfor %}
 </div>
 
-<div id="loading-overlay" class="loading-overlay" style="display: none;">
-    <div class="loading-spinner">
-        <div class="spinner"></div>
+<div id="loading-overlay" class="fixed inset-0 bg-bg-primary/90 flex justify-center items-center z-[1000]" style="display: none;">
+    <div class="text-center">
+        <div class="w-12 h-12 border-4 border-border border-t-primary rounded-full animate-spin-slow mx-auto mb-4"></div>
         <p>Refreshing services...</p>
     </div>
 </div>

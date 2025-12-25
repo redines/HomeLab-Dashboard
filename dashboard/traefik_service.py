@@ -42,6 +42,10 @@ class TraefikService:
             return data if isinstance(data, list) else []
         return []
     
+    def get_router_details(self, router_name: str) -> Optional[Dict]:
+        """Get detailed information about a specific router."""
+        return self._make_request(f'http/routers/{router_name}')
+    
     def get_services(self) -> List[Dict]:
         """Get all HTTP services from Traefik."""
         data = self._make_request('http/services')
@@ -69,8 +73,11 @@ class TraefikService:
                 if '@internal' in router_name or '@internal' in service_name:
                     continue
                 
+                # Check if router has TLS configuration
+                has_tls = router.get('tls') is not None
+                
                 # Parse the rule to extract the host/domain
-                url = self._extract_url_from_rule(router_rule)
+                url = self._extract_url_from_rule(router_rule, has_tls)
                 
                 if url:
                     service_info = {
@@ -89,7 +96,7 @@ class TraefikService:
         
         return discovered_services
     
-    def _extract_url_from_rule(self, rule: str) -> Optional[str]:
+    def _extract_url_from_rule(self, rule: str, has_tls: bool = False) -> Optional[str]:
         """
         Extract URL from Traefik rule.
         Example rules:
@@ -115,18 +122,13 @@ class TraefikService:
             path_pattern = r'PathPrefix\([`"]([^`"]+)[`"]\)'
             path_matches = re.findall(path_pattern, rule)
             
-            # Determine protocol (assume HTTPS if available, fallback to HTTP)
-            protocol = 'https' if self._has_tls(rule) else 'http'
+            # Use HTTPS if TLS is configured, otherwise HTTP
+            protocol = 'https' if has_tls else 'http'
             
             path = path_matches[0] if path_matches else ''
             return f"{protocol}://{host}{path}"
         
         return None
-    
-    def _has_tls(self, rule: str) -> bool:
-        """Check if the rule or router has TLS enabled."""
-        # This is a simple heuristic; in practice, you'd check the router's TLS configuration
-        return 'tls' in rule.lower() or 'https' in rule.lower()
     
     def _clean_service_name(self, name: str) -> str:
         """Clean service name for display."""

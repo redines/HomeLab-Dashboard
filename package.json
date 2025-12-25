@@ -1,0 +1,19 @@
+{
+  "name": "homelab-dashboard",
+  "version": "1.0.0",
+  "description": "HomeLab Dashboard with Tailwind CSS",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/src/input.css -o ./static/css/output.css --minify",
+    "watch:css": "tailwindcss -i ./static/src/input.css -o ./static/css/output.css --watch",
+    "dev": "concurrently --kill-others \"npm run watch:css\" \"python manage.py runserver\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.33",
+    "concurrently": "^8.2.2"
+  }
+}
