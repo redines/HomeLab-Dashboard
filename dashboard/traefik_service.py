@@ -12,6 +12,42 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def is_traefik_configured() -> bool:
+    """Check if Traefik API URL is configured."""
+    api_url = getattr(settings, 'TRAEFIK_API_URL', None)
+    if not api_url:
+        return False
+    # Check if it's not the default placeholder value or empty
+    if api_url in ['http://traefik:8080/api', '']:
+        logger.debug("Traefik API URL is set to default/empty value")
+        return False
+    return True
+
+
+def check_traefik_availability() -> bool:
+    """Test if Traefik API is accessible and responding."""
+    if not is_traefik_configured():
+        logger.debug("Traefik is not configured, skipping availability check")
+        return False
+    
+    try:
+        api_url = settings.TRAEFIK_API_URL
+        username = getattr(settings, 'TRAEFIK_API_USERNAME', '')
+        password = getattr(settings, 'TRAEFIK_API_PASSWORD', '')
+        
+        auth = None
+        if username and password:
+            auth = HTTPBasicAuth(username, password)
+        
+        response = requests.get(f"{api_url.rstrip('/')}/version", auth=auth, timeout=5)
+        response.raise_for_status()
+        logger.info("✓ Traefik API is available and responding")
+        return True
+    except Exception as e:
+        logger.info(f"Traefik API is not available: {e}")
+        return False
+
+
 class TraefikService:
     """Service to interact with Traefik API."""
     
@@ -172,21 +208,29 @@ class TraefikService:
 def sync_traefik_services(force_api_detection=False):
     """
     Synchronize services from Traefik API to the database.
-    This function can be called periodically or manually.
+    Automatically detects if Traefik is available and skips if not.
     
     Args:
         force_api_detection: If True, re-detect APIs even if already detected
+        
+    Returns:
+        int: Number of services synced, or 0 if Traefik is not available
     """
     from dashboard.models import Service
     from dashboard.api_detector import APIDetector
     from django.utils import timezone
     from datetime import timedelta
     
+    # Automatically check if Traefik is available
+    if not check_traefik_availability():
+        logger.debug("Traefik is not available. Using manual service management mode.")
+        return 0
+    
     traefik = TraefikService()
     
     # Test connection first
     if not traefik.test_connection():
-        logger.warning("Cannot connect to Traefik API. Skipping sync.")
+        logger.info("Cannot connect to Traefik API. Using manual service management mode.")
         return 0
     
     discovered = traefik.discover_services()
@@ -210,6 +254,23 @@ def sync_traefik_services(force_api_detection=False):
             # Detect API availability
             # Skip if already detected recently (within 7 days) unless forced or never detected
             should_detect = force_api_detection or not existing_service or not existing_service.api_detected
+            
+            # Check throttling: skip detection if checked 5+ times without success and not enough time passed
+            if existing_service and existing_service.api_detection_attempts >= 5 and not force_api_detection:
+                # If next_check time is set and we haven't reached it yet, skip detection
+                if existing_service.api_next_check and timezone.now() < existing_service.api_next_check:
+                    should_detect = False
+                    logger.debug(
+                        f"Skipping API detection for {service_data['name']} "
+                        f"(checked {existing_service.api_detection_attempts} times, "
+                        f"next check at {existing_service.api_next_check.strftime('%H:%M:%S')})"
+                    )
+                else:
+                    # Time to retry - allow detection
+                    logger.info(
+                        f"Retrying API detection for {service_data['name']} "
+                        f"(previous attempts: {existing_service.api_detection_attempts})"
+                    )
             
             # Also re-detect if it's been more than 7 days since last detection
             if existing_service and existing_service.api_last_detected:
@@ -242,8 +303,31 @@ def sync_traefik_services(force_api_detection=False):
                         detected_api_type = api_type
                         detected_endpoint = api_endpoint
                         logger.info(f"🔍 API detected for {service_data['name']}: {api_type}")
+                        # Reset detection attempts on success
+                        if existing_service:
+                            existing_service.api_detection_attempts = 0
+                            existing_service.api_next_check = None
+                    else:
+                        # Increment failed attempts
+                        if existing_service:
+                            existing_service.api_detection_attempts = (existing_service.api_detection_attempts or 0) + 1
+                            # After 5 failed attempts, throttle to check every 5 minutes
+                            if existing_service.api_detection_attempts >= 5:
+                                from datetime import timedelta
+                                existing_service.api_next_check = timezone.now() + timedelta(minutes=5)
+                                logger.info(
+                                    f"⏱️  API not found for {service_data['name']} after "
+                                    f"{existing_service.api_detection_attempts} attempts. "
+                                    f"Next check at {existing_service.api_next_check.strftime('%H:%M:%S')}"
+                                )
                 except Exception as e:
                     logger.debug(f"API detection failed for {service_data['name']}: {e}")
+                    # Also increment attempts on error
+                    if existing_service:
+                        existing_service.api_detection_attempts = (existing_service.api_detection_attempts or 0) + 1
+                        if existing_service.api_detection_attempts >= 5:
+                            from datetime import timedelta
+                            existing_service.api_next_check = timezone.now() + timedelta(minutes=5)
             
             # Prepare defaults
             defaults = {
@@ -261,6 +345,8 @@ def sync_traefik_services(force_api_detection=False):
             defaults['api_detected'] = api_detected
             if api_detected:
                 defaults['api_last_detected'] = timezone.now()
+                defaults['api_detection_attempts'] = 0  # Reset on success
+                defaults['api_next_check'] = None
                 if detected_api_type:
                     defaults['api_type'] = detected_api_type
                 if detected_endpoint:
@@ -268,6 +354,11 @@ def sync_traefik_services(force_api_detection=False):
                 # Auto-populate API URL if detected and not already set
                 if not existing_service or not existing_service.api_url:
                     defaults['api_url'] = service_data['url']
+            else:
+                # Preserve attempt tracking
+                if existing_service:
+                    defaults['api_detection_attempts'] = existing_service.api_detection_attempts
+                    defaults['api_next_check'] = existing_service.api_next_check
             
             # Update status_changed_at only if status changed or it's a new service
             if not existing_service or status_changed:

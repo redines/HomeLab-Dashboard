@@ -1,6 +1,6 @@
 # HomeLab Dashboard
 
-A modern, beautiful dashboard for monitoring your homelab services. Automatically discovers services from Traefik, shows health status, uptime, and provides quick access to your services.
+A modern, beautiful dashboard for monitoring your homelab services. Automatically discovers services from Traefik or manually add any service (internal or external). Shows health status, uptime, and provides quick access to your services.
 
 ![Django](https://img.shields.io/badge/Django-5.1-green.svg)
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
@@ -10,6 +10,7 @@ A modern, beautiful dashboard for monitoring your homelab services. Automaticall
 
 - [Welcome Guide](docs/WELCOME.md) - New to the project? Start here!
 - [Quick Start Guide](docs/QUICKSTART.md) - Get up and running in 3 minutes
+- [Manual Service Management](docs/MANUAL_SERVICES.md) - **NEW!** Add services without Traefik
 - [Features](docs/FEATURES.md) - Detailed list of all features and capabilities
 - [Configuration](docs/CONFIGURATION.md) - Environment variables, customization, and production deployment
 - [Project Structure](docs/STRUCTURE.md) - Understanding the codebase organization
@@ -18,18 +19,24 @@ A modern, beautiful dashboard for monitoring your homelab services. Automaticall
 
 ## Features
 
-- 🔄 **Auto-Discovery**: Automatically scans Traefik API to discover running services
+- 🔄 **Auto-Discovery**: Automatically scans Traefik API to discover running services (if Traefik is available)
+- 🎯 **Automatic Mode Detection**: Seamlessly switches between Traefik and manual mode based on availability
+- ➕ **Manual Services**: Add any service manually (homelab or external) - **No Traefik required!**
+- ✏️ **Service Management**: Edit and delete manually added services
+- 🌐 **External Services**: Add external websites (Google, GitHub, etc.) to your dashboard
 - 📊 **Health Monitoring**: Real-time health checks with response time tracking
 - 🎨 **Beautiful UI**: Modern, responsive card-based interface with dark theme
 - 🐳 **Docker Support**: Fully containerized with Docker and docker-compose
 - 🔗 **Quick Access**: Click any service card to navigate directly to the service
-- 🏷️ **Service Types**: Supports Docker, Kubernetes, VMs, and bare metal deployments
+- 🏷️ **Service Types**: Supports Docker, Kubernetes, VMs, bare metal, and external services
 - ⚡ **Fast Refresh**: Manual and automatic service refresh capabilities
 - 📱 **Responsive**: Works perfectly on desktop, tablet, and mobile devices
 
 ## Quick Start
 
-### Docker (Recommended)
+### Without Traefik (Manual Services Only)
+
+The application automatically detects if Traefik is available. Simply don't configure it:
 
 ```bash
 # 1. Clone and configure
@@ -37,7 +44,8 @@ git clone <your-repo-url>
 cd HomeLab-Dashboard
 cp .env.example .env
 
-# 2. Edit docker-compose.yml with your Traefik API URL
+# 2. Leave TRAEFIK_API_URL empty (already empty in .env.example)
+# No configuration needed! App automatically uses manual mode.
 
 # 3. Start the application
 docker-compose up -d
@@ -45,9 +53,34 @@ docker-compose up -d
 # 4. Initialize
 docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py createsuperuser
-docker-compose exec web python manage.py sync_services
 
 # 5. Access at http://localhost:8000
+# 6. Click "➕ Add Service" to add your services!
+```
+
+### Docker with Traefik (Recommended)
+
+If you have Traefik, just configure the URL and the app will automatically detect it:
+
+```bash
+# 1. Clone and configure
+git clone <your-repo-url>
+cd HomeLab-Dashboard
+cp .env.example .env
+
+# 2. Edit .env and set your Traefik API URL
+nano .env
+# Set: TRAEFIK_API_URL=http://your-traefik:8080/api
+
+# 3. Start the application
+docker-compose up -d
+
+# 4. Initialize
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+
+# 5. Access at http://localhost:8000
+# Services will be automatically discovered!
 ```
 
 ### Local Development

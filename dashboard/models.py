@@ -20,6 +20,7 @@ class Service(models.Model):
         ('kubernetes', 'Kubernetes'),
         ('vm', 'Virtual Machine'),
         ('bare_metal', 'Bare Metal'),
+        ('external', 'External Service'),
         ('other', 'Other'),
     ]
     
@@ -30,11 +31,18 @@ class Service(models.Model):
         ('custom', 'Custom'),
     ]
     
+    PROVIDER_CHOICES = [
+        ('traefik', 'Traefik'),
+        ('local', 'Local'),
+        ('external', 'External'),
+    ]
+    
     name = models.CharField(max_length=255, unique=True)
     url = models.URLField(max_length=500)
     status = models.CharField(max_length=20, choices=SERVICE_STATUS_CHOICES, default='unknown')
     service_type = models.CharField(max_length=50, choices=SERVICE_TYPE_CHOICES, default='docker')
-    provider = models.CharField(max_length=100, default='traefik')
+    provider = models.CharField(max_length=100, default='traefik', choices=PROVIDER_CHOICES)
+    is_manual = models.BooleanField(default=False, help_text='Whether service was added manually or auto-discovered')
     
     # Health and uptime information
     last_checked = models.DateTimeField(null=True, blank=True)
@@ -60,6 +68,8 @@ class Service(models.Model):
     api_detected = models.BooleanField(default=False, help_text='Whether API was automatically detected')
     api_endpoint = models.CharField(max_length=255, blank=True, help_text='Detected API endpoint path')
     api_last_detected = models.DateTimeField(null=True, blank=True, help_text='When API was last detected/verified')
+    api_detection_attempts = models.IntegerField(default=0, help_text='Number of failed API detection attempts')
+    api_next_check = models.DateTimeField(null=True, blank=True, help_text='When to retry API detection next')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -161,8 +171,40 @@ class Service(models.Model):
             
         except requests.exceptions.ConnectionError as e:
             logger.error(f"✗ {self.name}: CONNECTION ERROR - {type(e).__name__}: {str(e)[:100]}")
-            self.status = 'down'
-            self.response_time = None
+            
+            # If HTTPS failed, try HTTP as fallback
+            if self.url.startswith('https://'):
+                http_url = self.url.replace('https://', 'http://', 1)
+                logger.info(f"↻ {self.name}: Trying HTTP fallback - {http_url}")
+                try:
+                    start_time = datetime.now()
+                    response = requests.get(
+                        http_url,
+                        timeout=5,
+                        allow_redirects=True,
+                        verify=False,
+                        headers={'User-Agent': 'HomeLab-Dashboard/1.0'}
+                    )
+                    end_time = datetime.now()
+                    
+                    self.response_time = int((end_time - start_time).total_seconds() * 1000)
+                    
+                    if is_service_up(response.status_code):
+                        self.status = 'up'
+                        self.url = http_url  # Update to HTTP
+                        logger.info(f"✓ {self.name}: UP via HTTP fallback (status={response.status_code}, time={self.response_time}ms)")
+                        logger.info(f"📝 Updated {self.name} URL from HTTPS to HTTP")
+                    else:
+                        self.status = 'down'
+                        self.response_time = None
+                        logger.warning(f"✗ {self.name}: DOWN on both HTTPS and HTTP")
+                except Exception as e2:
+                    logger.error(f"✗ {self.name}: HTTP fallback also failed - {type(e2).__name__}")
+                    self.status = 'down'
+                    self.response_time = None
+            else:
+                self.status = 'down'
+                self.response_time = None
             
         except Exception as e:
             logger.error(f"✗ {self.name}: UNEXPECTED ERROR - {type(e).__name__}: {str(e)[:100]}")

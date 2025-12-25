@@ -189,8 +189,11 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Traefik API Configuration
-TRAEFIK_API_URL = os.environ.get('TRAEFIK_API_URL', 'http://traefik:8080/api')
+# Traefik API Configuration (Optional - Auto-detected)
+# If Traefik API URL is set and responding, services will be auto-discovered.
+# If not configured or not responding, the app automatically uses manual service management.
+# Leave TRAEFIK_API_URL empty or unset to use manual-only mode.
+TRAEFIK_API_URL = os.environ.get('TRAEFIK_API_URL', '')
 TRAEFIK_API_USERNAME = os.environ.get('TRAEFIK_API_USERNAME', '')
 TRAEFIK_API_PASSWORD = os.environ.get('TRAEFIK_API_PASSWORD', '')
 

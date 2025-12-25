@@ -24,11 +24,28 @@
                 <div>
                     <h1 class="text-3xl font-bold">{{ service.name }}</h1>
                     <p class="text-text-secondary mt-1">{{ service.description|default:"No description available" }}</p>
+                    {% if service.is_manual %}
+                    <span class="inline-block mt-2 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg border border-blue-500/30">
+                        📝 Manually Added
+                    </span>
+                    {% endif %}
                 </div>
             </div>
-            <span class="px-4 py-2 rounded-xl text-sm font-semibold uppercase tracking-wide {% if service.status == 'up' %}bg-success/20 text-success{% elif service.status == 'down' %}bg-danger/20 text-danger{% else %}bg-warning/20 text-warning{% endif %}">
-                {{ service.status|upper }}
-            </span>
+            <div class="flex flex-col gap-2 items-end">
+                <span class="px-4 py-2 rounded-xl text-sm font-semibold uppercase tracking-wide {% if service.status == 'up' %}bg-success/20 text-success{% elif service.status == 'down' %}bg-danger/20 text-danger{% else %}bg-warning/20 text-warning{% endif %}">
+                    {{ service.status|upper }}
+                </span>
+                {% if service.is_manual %}
+                <div class="flex gap-2">
+                    <button onclick="openEditServiceModal()" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                        ✏️ Edit
+                    </button>
+                    <button onclick="deleteService()" class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+                        🗑️ Delete
+                    </button>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -665,5 +682,171 @@ async function testRawApi() {
         responseEl.textContent = `Error: ${error.message}`;
     }
 }
+
+// Edit Service Modal
+function openEditServiceModal() {
+    const modal = document.getElementById('edit-service-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('edit-service-name').focus();
+    }
+}
+
+function closeEditServiceModal() {
+    const modal = document.getElementById('edit-service-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('edit-form-error').classList.add('hidden');
+    }
+}
+
+async function submitEditService(event) {
+    event.preventDefault();
+    
+    const formError = document.getElementById('edit-form-error');
+    formError.classList.add('hidden');
+    
+    const formData = {
+        name: document.getElementById('edit-service-name').value.trim(),
+        url: document.getElementById('edit-service-url').value.trim(),
+        description: document.getElementById('edit-service-description').value.trim(),
+        icon: document.getElementById('edit-service-icon').value.trim(),
+        service_type: document.getElementById('edit-service-type').value,
+        provider: document.getElementById('edit-service-provider').value,
+        tags: document.getElementById('edit-service-tags').value.trim(),
+    };
+    
+    try {
+        const response = await fetch(`/api/services/${serviceId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(formData),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            window.location.reload();
+        } else {
+            formError.textContent = data.error || 'Failed to update service';
+            formError.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error updating service:', error);
+        formError.textContent = 'Network error. Please try again.';
+        formError.classList.remove('hidden');
+    }
+}
+
+async function deleteService() {
+    if (!confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/services/${serviceId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            window.location.href = '/';
+        } else {
+            alert('Error deleting service: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error deleting service:', error);
+        alert('Network error. Please try again.');
+    }
+}
 </script>
+
+<!-- Edit Service Modal -->
+<div id="edit-service-modal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000]" style="display: none;">
+    <div class="bg-bg-secondary border border-border rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">✏️ Edit Service</h2>
+            <button onclick="closeEditServiceModal()" class="text-2xl hover:text-danger">&times;</button>
+        </div>
+        
+        <form onsubmit="submitEditService(event)" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Service Name *</label>
+                <input type="text" id="edit-service-name" value="{{ service.name }}" required 
+                       class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">Service URL *</label>
+                <input type="text" id="edit-service-url" value="{{ service.url }}" required 
+                       class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                       placeholder="e.g., plex.example.com, 192.168.1.100:8080">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">Description</label>
+                <textarea id="edit-service-description" rows="2"
+                          class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">{{ service.description }}</textarea>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Icon (Emoji)</label>
+                    <input type="text" id="edit-service-icon" value="{{ service.icon }}"
+                           class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Service Type</label>
+                    <select id="edit-service-type"
+                            class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="docker" {% if service.service_type == 'docker' %}selected{% endif %}>Docker</option>
+                        <option value="kubernetes" {% if service.service_type == 'kubernetes' %}selected{% endif %}>Kubernetes</option>
+                        <option value="vm" {% if service.service_type == 'vm' %}selected{% endif %}>Virtual Machine</option>
+                        <option value="bare_metal" {% if service.service_type == 'bare_metal' %}selected{% endif %}>Bare Metal</option>
+                        <option value="external" {% if service.service_type == 'external' %}selected{% endif %}>External Service</option>
+                        <option value="other" {% if service.service_type == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Provider</label>
+                    <select id="edit-service-provider"
+                            class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="local" {% if service.provider == 'local' or service.provider == 'manual' %}selected{% endif %}>Local</option>
+                        <option value="external" {% if service.provider == 'external' %}selected{% endif %}>External</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Tags</label>
+                    <input type="text" id="edit-service-tags" value="{{ service.tags }}"
+                           class="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                           placeholder="Comma-separated">
+                </div>
+            </div>
+            
+            <div id="edit-form-error" class="text-danger text-sm hidden"></div>
+            
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover font-medium">
+                    Update Service
+                </button>
+                <button type="button" onclick="closeEditServiceModal()" class="px-6 py-3 bg-bg border border-border rounded-lg hover:bg-bg-secondary font-medium">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

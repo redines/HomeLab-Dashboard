@@ -45,6 +45,15 @@ async function refreshServices() {
         const data = await response.json();
         
         if (data.success) {
+            // Show info message if in manual mode or Traefik unavailable
+            if (data.info) {
+                console.log('ℹ️ ' + data.info);
+                // Only show alert if no services were synced and user might be expecting Traefik
+                if (data.synced_services === 0 && data.traefik_configured) {
+                    alert('ℹ️ ' + data.info);
+                }
+            }
+            
             // Reload page to show updated services
             window.location.reload();
         } else {
@@ -163,6 +172,94 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshBtn.addEventListener('click', refreshServices);
     }
     
+    // Add Service Modal
+    const addServiceBtn = document.getElementById('add-service-btn');
+    const addServiceModal = document.getElementById('add-service-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const cancelModalBtn = document.getElementById('cancel-modal-btn');
+    const addServiceForm = document.getElementById('add-service-form');
+    
+    if (addServiceBtn && addServiceModal) {
+        addServiceBtn.addEventListener('click', () => {
+            addServiceModal.style.display = 'flex';
+            document.getElementById('service-name').focus();
+        });
+    }
+    
+    if (closeModalBtn && addServiceModal) {
+        closeModalBtn.addEventListener('click', () => {
+            addServiceModal.style.display = 'none';
+            addServiceForm.reset();
+            document.getElementById('form-error').classList.add('hidden');
+        });
+    }
+    
+    if (cancelModalBtn && addServiceModal) {
+        cancelModalBtn.addEventListener('click', () => {
+            addServiceModal.style.display = 'none';
+            addServiceForm.reset();
+            document.getElementById('form-error').classList.add('hidden');
+        });
+    }
+    
+    // Close modal on outside click
+    if (addServiceModal) {
+        addServiceModal.addEventListener('click', (e) => {
+            if (e.target === addServiceModal) {
+                addServiceModal.style.display = 'none';
+                addServiceForm.reset();
+                document.getElementById('form-error').classList.add('hidden');
+            }
+        });
+    }
+    
+    // Handle form submission
+    if (addServiceForm) {
+        addServiceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formError = document.getElementById('form-error');
+            formError.classList.add('hidden');
+            
+            const formData = {
+                name: document.getElementById('service-name').value.trim(),
+                url: document.getElementById('service-url').value.trim(),
+                description: document.getElementById('service-description').value.trim(),
+                icon: document.getElementById('service-icon').value.trim(),
+                service_type: document.getElementById('service-type').value,
+                provider: document.getElementById('service-provider').value,
+                tags: document.getElementById('service-tags').value.trim(),
+            };
+            
+            try {
+                const response = await fetch('/api/services/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body: JSON.stringify(formData),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Close modal and reload page
+                    addServiceModal.style.display = 'none';
+                    addServiceForm.reset();
+                    window.location.reload();
+                } else {
+                    formError.textContent = data.error || 'Failed to create service';
+                    formError.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error creating service:', error);
+                formError.textContent = 'Network error. Please try again.';
+                formError.classList.remove('hidden');
+            }
+        });
+    }
+    
     // Auto-fetch updated data after page load (wait 2 seconds for health checks to complete)
     setTimeout(async () => {
         await fetchServicesData();
@@ -190,9 +287,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
-    // Press 'R' to refresh
+    // Press 'R' to refresh (but not when typing in input fields)
     if (e.key === 'r' || e.key === 'R') {
-        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Check if user is typing in an input/textarea/select element
+        const activeElement = document.activeElement;
+        const isTyping = activeElement && (
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.tagName === 'SELECT' ||
+            activeElement.isContentEditable
+        );
+        
+        // Only trigger refresh if not typing and no modifier keys
+        if (!isTyping && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             refreshServices();
         }

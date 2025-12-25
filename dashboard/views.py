@@ -75,9 +75,23 @@ def api_services(request):
 
 @require_http_methods(["POST"])
 def refresh_services(request):
-    """API endpoint to refresh services from Traefik."""
+    """API endpoint to refresh services from Traefik (auto-detected) or just check health."""
+    from .traefik_service import is_traefik_configured, check_traefik_availability
+    
     try:
-        synced_count = sync_traefik_services()
+        synced_count = 0
+        traefik_available = False
+        traefik_configured = is_traefik_configured()
+        
+        # Automatically attempt Traefik sync if available
+        if traefik_configured:
+            if check_traefik_availability():
+                synced_count = sync_traefik_services()
+                traefik_available = True
+            else:
+                logger.info("Traefik is configured but not available, using manual mode")
+        else:
+            logger.debug("Traefik is not configured, using manual service management")
         
         # Check health for all services
         services = Service.objects.all()
@@ -89,12 +103,22 @@ def refresh_services(request):
             except Exception as e:
                 logger.error(f"Error checking health for {service.name}: {e}")
         
-        return JsonResponse({
+        response_data = {
             'success': True,
             'synced_services': synced_count,
             'health_checks': checked_count,
+            'traefik_configured': traefik_configured,
+            'traefik_available': traefik_available,
             'timestamp': timezone.now().isoformat(),
-        })
+        }
+        
+        # Add informative message based on Traefik status
+        if traefik_configured and not traefik_available:
+            response_data['info'] = 'Traefik is configured but not responding. Health checks performed. Using manual service management.'
+        elif not traefik_configured:
+            response_data['info'] = 'Using manual service management. Add services with the "➕ Add Service" button.'
+        
+        return JsonResponse(response_data)
     except Exception as e:
         logger.error(f"Error refreshing services: {e}")
         return JsonResponse({
@@ -638,6 +662,193 @@ def generic_api_proxy(request, service_id):
     
     except Exception as e:
         logger.error(f"Error in generic API proxy for {service.name}: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def create_service(request):
+    """Create a new manual service."""
+    try:
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        name = data.get('name', '').strip()
+        url = data.get('url', '').strip()
+        
+        if not name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Service name is required'
+            }, status=400)
+        
+        if not url:
+            return JsonResponse({
+                'success': False,
+                'error': 'Service URL is required'
+            }, status=400)
+        
+        # Normalize URL
+        if not url.startswith(('http://', 'https://')):
+            url = f"https://{url}"
+        url = url.rstrip('/')
+        
+        # Check if service with this name already exists
+        if Service.objects.filter(name=name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'A service with the name "{name}" already exists'
+            }, status=400)
+        
+        # Create the service
+        service = Service.objects.create(
+            name=name,
+            url=url,
+            description=data.get('description', '').strip(),
+            icon=data.get('icon', '').strip(),
+            service_type=data.get('service_type', 'other'),
+            provider=data.get('provider', 'local'),
+            is_manual=True,
+            status='unknown',
+            tags=data.get('tags', '').strip(),
+        )
+        
+        # Check health immediately
+        service.check_health()
+        
+        logger.info(f"Created manual service: {service.name}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Service created successfully',
+            'service': {
+                'id': service.id,
+                'name': service.name,
+                'url': service.url,
+                'status': service.status,
+            }
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error creating service: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def update_service(request, service_id):
+    """Update an existing manual service."""
+    try:
+        service = get_object_or_404(Service, id=service_id)
+        
+        # Only allow editing manual services
+        if not service.is_manual:
+            return JsonResponse({
+                'success': False,
+                'error': 'Only manually created services can be edited'
+            }, status=403)
+        
+        data = json.loads(request.body)
+        
+        # Update fields if provided
+        if 'name' in data:
+            name = data['name'].strip()
+            if name:
+                # Check if name is taken by another service
+                if Service.objects.exclude(id=service_id).filter(name=name).exists():
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'A service with the name "{name}" already exists'
+                    }, status=400)
+                service.name = name
+        
+        if 'url' in data:
+            url = data['url'].strip()
+            if url:
+                if not url.startswith(('http://', 'https://')):
+                    url = f"https://{url}"
+                service.url = url.rstrip('/')
+        
+        if 'description' in data:
+            service.description = data['description'].strip()
+        
+        if 'icon' in data:
+            service.icon = data['icon'].strip()
+        
+        if 'service_type' in data:
+            service.service_type = data['service_type']
+        
+        if 'provider' in data:
+            service.provider = data['provider']
+        
+        if 'tags' in data:
+            service.tags = data['tags'].strip()
+        
+        service.save()
+        
+        # Re-check health
+        service.check_health()
+        
+        logger.info(f"Updated manual service: {service.name}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Service updated successfully',
+            'service': {
+                'id': service.id,
+                'name': service.name,
+                'url': service.url,
+                'status': service.status,
+            }
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error updating service {service_id}: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@require_http_methods(["POST", "DELETE"])
+def delete_service(request, service_id):
+    """Delete a manual service."""
+    try:
+        service = get_object_or_404(Service, id=service_id)
+        
+        # Only allow deleting manual services
+        if not service.is_manual:
+            return JsonResponse({
+                'success': False,
+                'error': 'Only manually created services can be deleted'
+            }, status=403)
+        
+        service_name = service.name
+        service.delete()
+        
+        logger.info(f"Deleted manual service: {service_name}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Service "{service_name}" deleted successfully'
+        })
+    
+    except Exception as e:
+        logger.error(f"Error deleting service {service_id}: {e}")
         return JsonResponse({
             'success': False,
             'error': str(e)

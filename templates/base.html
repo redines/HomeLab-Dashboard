@@ -12,7 +12,10 @@
     <header class="bg-bg-secondary border-b border-border shadow-md">
         <div class="max-w-screen-2xl mx-auto px-5 py-4 flex justify-between items-center flex-col md:flex-row gap-4">
             <h1 class="text-2xl font-bold text-text-primary">🏠 HomeLab Dashboard</h1>
-            <nav>
+            <nav class="flex gap-3">
+                <button id="add-service-btn" class="px-5 py-2.5 bg-green-600 text-white rounded-md cursor-pointer text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg">
+                    <span class="text-lg">➕</span> Add Service
+                </button>
                 <button id="refresh-btn" class="px-5 py-2.5 bg-primary text-white rounded-md cursor-pointer text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-lg">
                     <span class="inline-block transition-transform duration-300 hover:rotate-180">🔄</span> Refresh Services
                 </button>
