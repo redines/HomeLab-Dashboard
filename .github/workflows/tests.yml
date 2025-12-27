@@ -44,11 +44,20 @@ jobs:
         export SECRET_KEY=test-secret-key-for-ci
         export FIELD_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     
-    - name: Run backend tests
+    - name: Run database migrations
+      env:
+        DJANGO_SETTINGS_MODULE: homelab_dashboard.settings
+        SECRET_KEY: test-secret-key-for-ci
+        FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY || 'gAAAAABhqQJ3VvJ-3K5qQz7_QxLJ6N5TQxZJ5rF1x2YqF6J9xJ3F1xJ='  }}
       run: |
-        export DJANGO_SETTINGS_MODULE=homelab_dashboard.settings
-        export SECRET_KEY=test-secret-key-for-ci
-        export FIELD_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+        python manage.py migrate --noinput
+    
+    - name: Run backend tests
+      env:
+        DJANGO_SETTINGS_MODULE: homelab_dashboard.settings
+        SECRET_KEY: test-secret-key-for-ci
+        FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY || 'gAAAAABhqQJ3VvJ-3K5qQz7_QxLJ6N5TQxZJ5rF1x2YqF6J9xJ3F1xJ='  }}
+      run: |
         pytest tests/ \
           --cov=dashboard \
           --cov-report=xml \
@@ -118,11 +127,20 @@ jobs:
         export SECRET_KEY=test-secret-key-for-ci
         export FIELD_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     
-    - name: Run integration tests
+    - name: Run database migrations
+      env:
+        DJANGO_SETTINGS_MODULE: homelab_dashboard.settings
+        SECRET_KEY: test-secret-key-for-ci
+        FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY || 'gAAAAABhqQJ3VvJ-3K5qQz7_QxLJ6N5TQxZJ5rF1x2YqF6J9xJ3F1xJ='  }}
       run: |
-        export DJANGO_SETTINGS_MODULE=homelab_dashboard.settings
-        export SECRET_KEY=test-secret-key-for-ci
-        export FIELD_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+        python manage.py migrate --noinput
+    
+    - name: Run integration tests
+      env:
+        DJANGO_SETTINGS_MODULE: homelab_dashboard.settings
+        SECRET_KEY: test-secret-key-for-ci
+        FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY || 'gAAAAABhqQJ3VvJ-3K5qQz7_QxLJ6N5TQxZJ5rF1x2YqF6J9xJ3F1xJ='  }}
+      run: |
         pytest tests/ -m "integration" -v
   
   lint:
