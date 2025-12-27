@@ -4,8 +4,8 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from .models import Service, HealthCheck, GrafanaPanel
-from .traefik_service import sync_traefik_services
-from .generic_api_client import GenericAPIClient
+from .utils.traefik_service import sync_traefik_services
+from .utils.generic_api_client import GenericAPIClient
 from django.utils import timezone
 import logging
 import threading
@@ -80,7 +80,7 @@ def api_services(request):
 @require_http_methods(["POST"])
 def refresh_services(request):
     """API endpoint to refresh services from Traefik (auto-detected) or just check health."""
-    from .traefik_service import is_traefik_configured, check_traefik_availability
+    from .utils.traefik_service import is_traefik_configured, check_traefik_availability
     
     try:
         synced_count = 0
@@ -218,7 +218,7 @@ def update_service_credentials(request, service_id):
 @require_http_methods(["POST"])
 def detect_service_api(request, service_id):
     """Force re-detection of API for a specific service."""
-    from .api_detector import APIDetector
+    from .utils.api_detector import APIDetector
     from django.utils import timezone
     
     service = get_object_or_404(Service, id=service_id)

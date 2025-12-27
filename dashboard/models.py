@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from .encryption import EncryptedCharField, EncryptedTextField
+from .utils.encryption import EncryptedCharField, EncryptedTextField
 import logging
 
 logger = logging.getLogger(__name__)

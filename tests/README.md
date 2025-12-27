@@ -20,15 +20,15 @@ tests/
 
 Run all tests:
 ```bash
-./run_tests.sh
+./scripts/run_tests.sh
 ```
 
 Run specific test categories:
 ```bash
-./run_tests.sh backend      # Backend only
-./run_tests.sh frontend     # Frontend only
-./run_tests.sh unit         # Unit tests only
-./run_tests.sh integration  # Integration tests only
+./scripts/run_tests.sh backend      # Backend only
+./scripts/run_tests.sh frontend     # Frontend only
+./scripts/run_tests.sh unit         # Unit tests only
+./scripts/run_tests.sh integration  # Integration tests only
 ```
 
 ## Test Categories

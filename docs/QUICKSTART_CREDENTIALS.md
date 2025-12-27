@@ -7,7 +7,7 @@ Your HomeLab Dashboard automatically handles encryption for you!
 ### 1. Start the Application
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 That's it! The application automatically:

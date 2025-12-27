@@ -23,7 +23,7 @@ class DashboardConfig(AppConfig):
             return
         
         # Import here to avoid AppRegistryNotReady error
-        from dashboard.traefik_service import sync_traefik_services
+        from dashboard.utils.traefik_service import sync_traefik_services
         from django.conf import settings
         
         # Start background sync thread

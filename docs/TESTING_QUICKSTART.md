@@ -16,7 +16,7 @@ npm install
 
 ```bash
 # Run all tests
-./run_tests.sh
+./scripts/run_tests.sh
 ```
 
 That's it! You should see output like:
@@ -51,19 +51,19 @@ Test Summary
 
 ```bash
 # Run only backend tests (faster)
-./run_tests.sh backend
+./scripts/run_tests.sh backend
 
 # Run only frontend tests
-./run_tests.sh frontend
+./scripts/run_tests.sh frontend
 
 # Run only fast unit tests
-./run_tests.sh unit
+./scripts/run_tests.sh unit
 
 # Run only integration tests
-./run_tests.sh integration
+./scripts/run_tests.sh integration
 
 # Run without coverage (faster)
-./run_tests.sh all false
+./scripts/run_tests.sh all false
 ```
 
 ## Step 4: View Coverage Reports
@@ -146,7 +146,7 @@ pytest -m "not slow"
 
 1. **Run tests before committing**:
    ```bash
-   ./run_tests.sh
+   ./scripts/run_tests.sh
    ```
 
 2. **Write tests for new features**:
@@ -171,7 +171,7 @@ pytest -m "not slow"
 
 ## Next Steps
 
-1. ✅ Run tests: `./run_tests.sh` ← You are here
+1. ✅ Run tests: `./scripts/run_tests.sh` ← You are here
 2. 📖 Read the full testing guide
 3. 🔍 Explore test files in `tests/`
 4. ✍️ Write tests for your features

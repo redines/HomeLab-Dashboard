@@ -69,22 +69,22 @@ chmod +x run_tests.sh
 
 ```bash
 # Run everything (recommended for CI/CD)
-./run_tests.sh
+./scripts/run_tests.sh
 
 # Run backend only
-./run_tests.sh backend
+./scripts/run_tests.sh backend
 
 # Run frontend only
-./run_tests.sh frontend
+./scripts/run_tests.sh frontend
 
 # Run unit tests only (fastest)
-./run_tests.sh unit
+./scripts/run_tests.sh unit
 
 # Run integration tests only
-./run_tests.sh integration
+./scripts/run_tests.sh integration
 
 # Run without coverage (faster)
-./run_tests.sh all false
+./scripts/run_tests.sh all false
 ```
 
 ### Manual Test Commands
@@ -221,7 +221,7 @@ open coverage/frontend/lcov-report/index.html
 
 When code changes:
 1. Update relevant test files
-2. Run tests to verify: `./run_tests.sh`
+2. Run tests to verify: `./scripts/run_tests.sh`
 3. Check coverage: reports generated automatically
 4. Update documentation if needed
 
@@ -257,7 +257,7 @@ When code changes:
 
 Before committing code:
 
-- [ ] Run all tests: `./run_tests.sh`
+- [ ] Run all tests: `./scripts/run_tests.sh`
 - [ ] All tests pass (green)
 - [ ] Coverage is acceptable (>80% overall)
 - [ ] No new warnings or errors
@@ -314,7 +314,7 @@ Your HomeLab Dashboard now has:
 - ✅ Complete documentation
 
 You can now:
-- Run tests manually with `./run_tests.sh`
+- Run tests manually with `./scripts/run_tests.sh`
 - Have tests run automatically in CI/CD
 - Get coverage reports
 - Test backend and frontend separately

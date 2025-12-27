@@ -14,12 +14,12 @@ npm install
 
 | Command | Description |
 |---------|-------------|
-| `./run_tests.sh` | Run all tests with coverage |
-| `./run_tests.sh backend` | Run only backend tests |
-| `./run_tests.sh frontend` | Run only frontend tests |
-| `./run_tests.sh unit` | Run only unit tests |
-| `./run_tests.sh integration` | Run only integration tests |
-| `./run_tests.sh all false` | Run all tests without coverage |
+| `./scripts/run_tests.sh` | Run all tests with coverage |
+| `./scripts/run_tests.sh backend` | Run only backend tests |
+| `./scripts/run_tests.sh frontend` | Run only frontend tests |
+| `./scripts/run_tests.sh unit` | Run only unit tests |
+| `./scripts/run_tests.sh integration` | Run only integration tests |
+| `./scripts/run_tests.sh all false` | Run all tests without coverage |
 
 ## Backend (pytest)
 

@@ -77,7 +77,7 @@ Test any service API directly with the generic client:
 python manage.py shell
 
 from dashboard.models import Service
-from dashboard.generic_api_client import GenericAPIClient
+from dashboard.utils.generic_api_client import GenericAPIClient
 
 # Get your service
 service = Service.objects.get(name='Portainer')  # Or any service name

@@ -173,7 +173,7 @@ class TestDashboardWorkflow:
         """Test Traefik service synchronization workflow - SIMPLIFIED."""
         # For now, just test that calling sync_traefik_services() doesn't crash
         # when Traefik is not available (which is the expected behavior in tests)
-        from dashboard.traefik_service import sync_traefik_services
+        from dashboard.utils.traefik_service import sync_traefik_services
         
         # This should return 0 since Traefik is not configured/available in test environment
         result = sync_traefik_services()
@@ -190,7 +190,7 @@ class TestAPIWorkflow:
     def test_api_detection_and_configuration_workflow(self, api_client, sample_service):
         """Test complete API detection and configuration workflow."""
         # Step 1: Detect API
-        with patch('dashboard.api_detector.APIDetector.detect_api') as mock_detect:
+        with patch('dashboard.utils.api_detector.APIDetector.detect_api') as mock_detect:
             mock_detect.return_value = (True, 'qbittorrent', '/api/v2')
             
             detect_response = api_client.post(
@@ -213,7 +213,7 @@ class TestAPIWorkflow:
     
     def test_api_client_authentication_workflow(self, service_with_api):
         """Test API client authentication workflow."""
-        from dashboard.generic_api_client import GenericAPIClient
+        from dashboard.utils.generic_api_client import GenericAPIClient
         
         # Step 1: Create API client
         client = GenericAPIClient(

@@ -55,7 +55,7 @@ Congratulations! Your HomeLab Dashboard project is successfully set up and ready
 
 1. **Run the startup script** (handles everything!)
    ```bash
-   ./start.sh
+   ./scripts/start.sh
    ```
 
 2. **In another terminal, sync services**
@@ -108,9 +108,10 @@ Congratulations! Your HomeLab Dashboard project is successfully set up and ready
  │   ├── .env.example
  │   └── traefik-example.yml
  │
- └── 🛠️  Scripts (2 files)
-     ├── start.sh             # Dev startup
-     └── test-setup.sh        # Verification
+ └── 🛠️  Scripts (3 files)
+     ├── scripts/start.sh        # Dev startup
+     ├── scripts/test-setup.sh   # Verification
+     └── scripts/run_tests.sh    # Test runner
 ```
 
 ---
@@ -166,8 +167,8 @@ python manage.py runserver        # Start dev server
 
 ### Helpful Scripts
 ```bash
-./start.sh         # Quick dev environment setup
-./test-setup.sh    # Verify installation
+./scripts/start.sh         # Quick dev environment setup
+./scripts/test-setup.sh    # Verify installation
 ```
 
 ### Keyboard Shortcuts

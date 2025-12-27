@@ -3,6 +3,10 @@
 # HomeLab Dashboard - Testing Script
 # This script helps verify that the setup is correct
 
+# Change to project root directory (parent of scripts/)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.." || exit 1
+
 echo "🧪 HomeLab Dashboard - Setup Verification"
 echo "=========================================="
 echo ""
@@ -61,7 +65,7 @@ FILES=(
     "homelab_dashboard/settings.py"
     "dashboard/models.py"
     "dashboard/views.py"
-    "dashboard/traefik_service.py"
+    "dashboard/utils/traefik_service.py"
     "templates/dashboard/index.html"
     "static/css/style.css"
     "static/js/dashboard.js"
@@ -122,7 +126,7 @@ if [ $FAIL -eq 0 ]; then
     echo "      $ docker-compose exec web python manage.py createsuperuser"
     echo ""
     echo "      Local:"
-    echo "      $ ./start.sh"
+    echo "      $ ./scripts/start.sh"
     echo ""
     echo "   3. Sync services: python manage.py sync_services"
     echo "   4. Access dashboard: http://localhost:8000"

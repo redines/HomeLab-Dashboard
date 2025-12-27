@@ -27,7 +27,7 @@ When you first start the application:
 
 1. **Start your application** (that's it!)
    ```bash
-   ./start.sh
+   ./scripts/start.sh
    ```
 
 2. **Configure credentials** through the web interface:
@@ -139,7 +139,7 @@ After setting the key, restart your application:
 
 ```bash
 # Development
-./start.sh
+./scripts/start.sh
 
 # Docker
 docker-compose restart
@@ -361,7 +361,7 @@ for sid, username, password in creds:
 The implementation uses custom Django fields in `dashboard/encryption.py`:
 
 ```python
-from dashboard.encryption import EncryptedCharField, EncryptedTextField
+from dashboard.utils.encryption import EncryptedCharField, EncryptedTextField
 
 class MyModel(models.Model):
     secret = EncryptedCharField(max_length=255, blank=True)

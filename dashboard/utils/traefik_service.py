@@ -217,7 +217,7 @@ def sync_traefik_services(force_api_detection=False):
         int: Number of services synced, or 0 if Traefik is not available
     """
     from dashboard.models import Service
-    from dashboard.api_detector import APIDetector
+    from dashboard.utils.api_detector import APIDetector
     from django.utils import timezone
     from datetime import timedelta
     

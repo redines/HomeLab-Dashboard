@@ -45,13 +45,13 @@ HomeLab-Dashboard/
 
 Run all tests:
 ```bash
-./run_tests.sh
+./scripts/run_tests.sh
 ```
 
 ### Backend Tests Only
 
 ```bash
-./run_tests.sh backend
+./scripts/run_tests.sh backend
 ```
 
 Or directly with pytest:
@@ -62,7 +62,7 @@ pytest tests/ -v
 ### Frontend Tests Only
 
 ```bash
-./run_tests.sh frontend
+./scripts/run_tests.sh frontend
 ```
 
 Or directly with npm:
@@ -73,7 +73,7 @@ npm test
 ### Unit Tests Only
 
 ```bash
-./run_tests.sh unit
+./scripts/run_tests.sh unit
 ```
 
 This runs:
@@ -83,7 +83,7 @@ This runs:
 ### Integration Tests Only
 
 ```bash
-./run_tests.sh integration
+./scripts/run_tests.sh integration
 ```
 
 ### Running Specific Test Files
@@ -126,7 +126,7 @@ pytest -m slow
 ### Running Tests Without Coverage
 
 ```bash
-./run_tests.sh all false
+./scripts/run_tests.sh all false
 ```
 
 ### Watch Mode (Frontend)

@@ -2,7 +2,7 @@
 Management command to detect or re-detect APIs for services.
 """
 from django.core.management.base import BaseCommand
-from dashboard.traefik_service import sync_traefik_services
+from dashboard.utils.traefik_service import sync_traefik_services
 
 
 class Command(BaseCommand):

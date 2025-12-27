@@ -47,7 +47,7 @@ docker-compose exec web python manage.py sync_services
 ### Option 2: Local Development
 ```bash
 # 1. Run the startup script (handles everything automatically)
-./start.sh
+./scripts/start.sh
 
 # 2. In another terminal, sync services
 source venv/bin/activate
@@ -79,8 +79,10 @@ HomeLab-Dashboard/
 │   └── STRUCTURE.md         # Architecture
 │
 └── 🛠️ Tools
-    ├── start.sh             # Dev startup script
-    ├── test-setup.sh        # Verification script
+    ├── scripts/
+    │   ├── start.sh         # Dev startup script
+    │   ├── test-setup.sh    # Verification script
+    │   └── run_tests.sh     # Test runner
     └── requirements.txt     # Dependencies
 ```
 

@@ -56,9 +56,11 @@
 - .gitignore                 # Git ignore rules
 - traefik-example.yml        # Sample Traefik config
 
-## 🛠️ Scripts (2 files)
-- start.sh                   # Development startup script
-- test-setup.sh              # Setup verification script
+## 🛠️ Scripts (3 files)
+Located in `scripts/` directory:
+- scripts/start.sh           # Development startup script
+- scripts/test-setup.sh      # Setup verification script
+- scripts/run_tests.sh       # Test runner script
 
 ---
 

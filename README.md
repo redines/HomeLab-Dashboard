@@ -14,8 +14,12 @@ A modern, beautiful dashboard for monitoring your homelab services. Automaticall
 - [Features](docs/FEATURES.md) - Detailed list of all features and capabilities
 - [Configuration](docs/CONFIGURATION.md) - Environment variables, customization, and production deployment
 - [Project Structure](docs/STRUCTURE.md) - Understanding the codebase organization
+- [Project Organization](docs/PROJECT_ORGANIZATION.md) - How the project files are organized
 - [Project Summary](docs/PROJECT_SUMMARY.md) - Overview and technical details
 - [Files Reference](docs/FILES.md) - Description of all project files
+- [Testing Guide](docs/TESTING.md) - Comprehensive testing documentation
+- [Testing Quick Start](docs/TESTING_QUICKSTART.md) - Get started with testing in 5 minutes
+- [Testing Setup Summary](docs/TESTING_SETUP_SUMMARY.md) - Complete testing setup overview
 
 ## Features
 
