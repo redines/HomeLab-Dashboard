@@ -1,0 +1,20 @@
+{
+  "testEnvironment": "jsdom",
+  "setupFilesAfterEnv": ["<rootDir>/tests/frontend/setup.js"],
+  "testMatch": [
+    "**/tests/frontend/**/*.test.js",
+    "**/tests/frontend/**/*.spec.js"
+  ],
+  "collectCoverageFrom": [
+    "static/js/**/*.js",
+    "!static/js/**/*.min.js",
+    "!static/js/vendor/**"
+  ],
+  "coverageDirectory": "coverage/frontend",
+  "coverageReporters": ["text", "lcov", "html"],
+  "moduleNameMapper": {
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+  },
+  "testTimeout": 10000,
+  "verbose": true
+}

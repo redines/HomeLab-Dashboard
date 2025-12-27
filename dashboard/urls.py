@@ -16,4 +16,9 @@ urlpatterns = [
     path('api/services/<int:service_id>/detect-api/', views.detect_service_api, name='detect_service_api'),
     path('api/services/<int:service_id>/api-docs/', views.service_api_docs, name='service_api_docs'),
     path('api/services/<int:service_id>/proxy/', views.generic_api_proxy, name='generic_api_proxy'),
+    
+    # Grafana panels
+    path('grafana/', views.grafana_panels_view, name='grafana_panels'),
+    path('grafana/<int:panel_id>/', views.grafana_panel_detail, name='grafana_panel_detail'),
+    path('api/grafana/panels/', views.api_grafana_panels, name='api_grafana_panels'),
 ]

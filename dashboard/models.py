@@ -236,3 +236,96 @@ class HealthCheck(models.Model):
     
     def __str__(self):
         return f"{self.service.name} - {self.status} at {self.checked_at}"
+
+
+class GrafanaPanel(models.Model):
+    """Model to store Grafana panel/dashboard configurations for embedding."""
+    
+    REFRESH_CHOICES = [
+        ('5s', '5 seconds'),
+        ('10s', '10 seconds'),
+        ('30s', '30 seconds'),
+        ('1m', '1 minute'),
+        ('5m', '5 minutes'),
+        ('15m', '15 minutes'),
+        ('30m', '30 minutes'),
+        ('1h', '1 hour'),
+        ('2h', '2 hours'),
+        ('1d', '1 day'),
+    ]
+    
+    THEME_CHOICES = [
+        ('light', 'Light'),
+        ('dark', 'Dark'),
+    ]
+    
+    # Basic configuration
+    title = models.CharField(max_length=255, help_text='Display title for the panel')
+    description = models.TextField(blank=True, help_text='Optional description of what this panel shows')
+    
+    # Grafana connection details
+    grafana_url = models.URLField(max_length=500, help_text='Base URL of your Grafana instance (e.g., https://grafana.example.com)')
+    dashboard_uid = models.CharField(max_length=255, help_text='Dashboard UID from Grafana (found in dashboard URL)')
+    panel_id = models.IntegerField(help_text='Panel ID to embed (found in panel share link)')
+    
+    # Optional: Link to specific service
+    service = models.ForeignKey(
+        Service, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='grafana_panels',
+        help_text='Optionally link this panel to a specific service'
+    )
+    
+    # Display settings
+    width = models.IntegerField(default=450, help_text='Width in pixels for the embedded panel')
+    height = models.IntegerField(default=200, help_text='Height in pixels for the embedded panel')
+    theme = models.CharField(max_length=10, choices=THEME_CHOICES, default='dark', help_text='Grafana panel theme')
+    refresh = models.CharField(max_length=10, choices=REFRESH_CHOICES, default='1m', help_text='Auto-refresh interval')
+    
+    # Time range settings
+    from_time = models.CharField(max_length=50, default='now-6h', help_text='Start time (e.g., now-6h, now-24h, now-7d)')
+    to_time = models.CharField(max_length=50, default='now', help_text='End time (usually "now")')
+    
+    # Display control
+    is_active = models.BooleanField(default=True, help_text='Show this panel on the dashboard')
+    display_order = models.IntegerField(default=0, help_text='Order in which panels are displayed (lower numbers first)')
+    
+    # Optional authentication
+    api_key = EncryptedTextField(blank=True, help_text='Grafana API key if authentication is required')
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['display_order', 'title']
+        verbose_name = 'Grafana Panel'
+        verbose_name_plural = 'Grafana Panels'
+    
+    def __str__(self):
+        return self.title
+    
+    def get_embed_url(self):
+        """Generate the iframe embed URL for this Grafana panel."""
+        # Base URL format: {grafana_url}/d-solo/{dashboard_uid}
+        base_url = self.grafana_url.rstrip('/')
+        embed_url = f"{base_url}/d-solo/{self.dashboard_uid}"
+        
+        # Add parameters
+        params = [
+            f"orgId=1",
+            f"panelId={self.panel_id}",
+            f"theme={self.theme}",
+            f"from={self.from_time}",
+            f"to={self.to_time}",
+            f"refresh={self.refresh}",
+        ]
+        
+        return f"{embed_url}?{'&'.join(params)}"
+    
+    def get_dashboard_url(self):
+        """Get the full dashboard URL (not embedded) for reference."""
+        base_url = self.grafana_url.rstrip('/')
+        return f"{base_url}/d/{self.dashboard_uid}"

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="my-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold">{{ panel.title }}</h1>
+            {% if panel.description %}
+                <p class="text-text-secondary mt-1">{{ panel.description }}</p>
+            {% endif %}
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ panel.get_dashboard_url }}" target="_blank" 
+               class="px-4 py-2 bg-bg-secondary border border-border rounded-lg hover:bg-bg-tertiary transition-colors">
+                Open in Grafana →
+            </a>
+            <button onclick="window.history.back()" 
+                    class="px-4 py-2 bg-bg-secondary border border-border rounded-lg hover:bg-bg-tertiary transition-colors">
+                ← Back
+            </button>
+        </div>
+    </div>
+
+    <!-- Full-size Grafana Panel -->
+    <div class="bg-bg-secondary border border-border rounded-xl overflow-hidden shadow-xl">
+        <iframe 
+            src="{{ panel.get_embed_url }}"
+            width="100%" 
+            height="800"
+            frameborder="0"
+            class="grafana-panel-fullscreen">
+        </iframe>
+    </div>
+
+    <div class="mt-4 flex items-center gap-6 text-sm text-text-secondary">
+        <span>🔄 Refresh: {{ panel.get_refresh_display }}</span>
+        <span>⏱️ Time Range: {{ panel.from_time }} to {{ panel.to_time }}</span>
+        <span>🎨 Theme: {{ panel.get_theme_display }}</span>
+        {% if panel.service %}
+            <span>🔗 Service: <a href="{% url 'dashboard:service_detail' panel.service.id %}" class="text-primary hover:underline">{{ panel.service.name }}</a></span>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.grafana-panel-fullscreen {
+    background: linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(255,255,255,0.02) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.02) 75%),
+                linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.02) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+</style>
+{% endblock %}

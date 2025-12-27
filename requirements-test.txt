@@ -1,0 +1,25 @@
+# Testing Requirements
+# Install with: pip install -r requirements-test.txt
+
+# Core testing frameworks
+pytest==7.4.3
+pytest-django==4.7.0
+
+# Coverage tools
+pytest-cov==4.1.0
+coverage==7.3.4
+
+# Testing utilities
+pytest-mock==3.12.0
+pytest-xdist==3.5.0  # Parallel test execution
+faker==22.0.0        # Generate fake test data
+
+# Code quality tools (optional, for development)
+flake8==7.0.0
+black==24.1.1
+isort==5.13.2
+
+# Additional testing tools
+pytest-timeout==2.2.0      # Test timeouts
+pytest-html==4.1.1         # HTML test reports
+pytest-benchmark==4.0.0    # Performance benchmarking

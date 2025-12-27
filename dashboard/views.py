@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from .models import Service, HealthCheck
+from .models import Service, HealthCheck, GrafanaPanel
 from .traefik_service import sync_traefik_services
 from .generic_api_client import GenericAPIClient
 from django.utils import timezone
@@ -28,6 +28,9 @@ def dashboard(request):
     """Main dashboard view."""
     services = Service.objects.all().order_by('name')
     
+    # Get active Grafana panels (limit to first 4 for dashboard preview)
+    grafana_panels = GrafanaPanel.objects.filter(is_active=True).order_by('display_order', 'title')[:4]
+    
     # Trigger async health check in background thread
     health_check_thread = threading.Thread(target=check_all_services_health, daemon=True)
     health_check_thread.start()
@@ -38,6 +41,7 @@ def dashboard(request):
         'up_services': services.filter(status='up').count(),
         'down_services': services.filter(status='down').count(),
         'api_services': services.filter(api_detected=True).count(),
+        'grafana_panels': grafana_panels,
         'last_updated': timezone.now(),
     }
     
@@ -853,3 +857,67 @@ def delete_service(request, service_id):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# ============================================
+# Grafana Panel Views
+# ============================================
+
+@require_http_methods(["GET"])
+def api_grafana_panels(request):
+    """API endpoint to get all active Grafana panels as JSON."""
+    panels = GrafanaPanel.objects.filter(is_active=True).order_by('display_order', 'title')
+    
+    panels_data = []
+    for panel in panels:
+        panel_data = {
+            'id': panel.id,
+            'title': panel.title,
+            'description': panel.description,
+            'embed_url': panel.get_embed_url(),
+            'dashboard_url': panel.get_dashboard_url(),
+            'width': panel.width,
+            'height': panel.height,
+            'theme': panel.theme,
+            'refresh': panel.refresh,
+        }
+        
+        # Add service info if linked
+        if panel.service:
+            panel_data['service'] = {
+                'id': panel.service.id,
+                'name': panel.service.name,
+                'status': panel.service.status,
+            }
+        
+        panels_data.append(panel_data)
+    
+    return JsonResponse({
+        'success': True,
+        'panels': panels_data,
+        'total': len(panels_data)
+    })
+
+
+def grafana_panels_view(request):
+    """View to display all active Grafana panels."""
+    panels = GrafanaPanel.objects.filter(is_active=True).order_by('display_order', 'title')
+    
+    context = {
+        'panels': panels,
+        'total_panels': panels.count(),
+    }
+    
+    return render(request, 'dashboard/grafana_panels.html', context)
+
+
+def grafana_panel_detail(request, panel_id):
+    """View to display a single Grafana panel in fullscreen."""
+    panel = get_object_or_404(GrafanaPanel, id=panel_id)
+    
+    context = {
+        'panel': panel,
+    }
+    
+    return render(request, 'dashboard/grafana_panel_detail.html', context)
+

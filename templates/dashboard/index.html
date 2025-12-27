@@ -35,6 +35,51 @@
     </div>
 </div>
 
+<!-- Grafana Monitoring Section -->
+{% if grafana_panels %}
+<div class="mb-12">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">📈 Resource Monitoring</h2>
+        <a href="{% url 'dashboard:grafana_panels' %}" 
+           class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium">
+            View All Panels →
+        </a>
+    </div>
+    
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {% for panel in grafana_panels|slice:":4" %}
+        <div class="bg-bg-secondary border border-border rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-lg font-bold">{{ panel.title }}</h3>
+                    {% if panel.description %}
+                        <p class="text-sm text-text-secondary">{{ panel.description|truncatewords:15 }}</p>
+                    {% endif %}
+                </div>
+                <a href="{% url 'dashboard:grafana_panel_detail' panel.id %}" 
+                   class="p-2 hover:bg-bg-tertiary rounded-lg transition-colors" 
+                   title="Fullscreen">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                    </svg>
+                </a>
+            </div>
+            <div class="rounded-lg overflow-hidden bg-black/20" style="height: {{ panel.height }}px;">
+                <iframe 
+                    src="{{ panel.get_embed_url }}"
+                    width="100%" 
+                    height="{{ panel.height }}"
+                    frameborder="0"
+                    loading="lazy"
+                    style="border: none;">
+                </iframe>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" id="services-grid">
     {% for service in services %}
     <div class="bg-bg-secondary border-2 {% if service.status == 'up' %}border-l-4 border-l-success border-border{% elif service.status == 'down' %}border-l-4 border-l-danger border-border{% else %}border-l-4 border-l-warning border-border{% endif %} rounded-xl p-6 cursor-pointer transition-all duration-300 flex flex-col gap-4 shadow-md hover:-translate-y-1 hover:shadow-xl hover:border-primary" 
