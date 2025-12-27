@@ -59,8 +59,15 @@ class TestDashboardView:
 class TestServiceAPIEndpoints:
     """Test cases for service API endpoints."""
     
-    def test_api_services_list(self, api_client, sample_services):
+    def test_api_services_list(self, api_client, sample_services, db):
         """Test getting list of services via API."""
+        from dashboard.models import Service
+        # Clean up any existing services first
+        Service.objects.all().delete()
+        # Recreate the sample services
+        for i, service in enumerate(sample_services):
+            service.save()
+        
         response = api_client.get('/api/services/')
         
         assert response.status_code == 200
@@ -88,6 +95,10 @@ class TestServiceAPIEndpoints:
     
     def test_api_services_empty(self, api_client, db):
         """Test API with no services."""
+        from dashboard.models import Service
+        # Ensure database is clean
+        Service.objects.all().delete()
+        
         response = api_client.get('/api/services/')
         
         assert response.status_code == 200

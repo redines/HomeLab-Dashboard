@@ -253,11 +253,15 @@ class TestTraefikService:
         result = traefik.discover_services()
         assert result == [] or mock_get.called
     
+    @patch('dashboard.traefik_service.check_traefik_availability')
     @patch('dashboard.traefik_service.TraefikService')
-    def test_sync_traefik_services(self, mock_traefik_class, db):
+    def test_sync_traefik_services(self, mock_traefik_class, mock_check_availability, db):
         """Test syncing Traefik services to database."""
         from dashboard.traefik_service import sync_traefik_services
         from dashboard.models import Service
+        
+        # Mock Traefik availability check to return True
+        mock_check_availability.return_value = True
         
         # Create a mock instance
         mock_instance = Mock()
@@ -277,5 +281,6 @@ class TestTraefikService:
         
         result = sync_traefik_services()
         
-        # Check that the TraefikService class was instantiated
+        # Check that Traefik availability was checked and TraefikService was instantiated
+        assert mock_check_availability.called
         assert mock_traefik_class.called
