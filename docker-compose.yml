@@ -1,0 +1,30 @@
+services:
+  web:
+    build: .
+    container_name: homelab-dashboard
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=your-secret-key-here-change-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,homelab-dashboard
+      - TRAEFIK_API_URL=http://traefik:8080/api
+      - TRAEFIK_API_USERNAME=
+      - TRAEFIK_API_PASSWORD=
+      - SERVICE_REFRESH_INTERVAL=60
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      # Note: .encryption_key is auto-generated and persisted via the . volume mount
+      # This ensures encryption key persists across container restarts
+      # For production, consider: - ./data/.encryption_key:/app/.encryption_key
+    restart: unless-stopped
+    networks:
+      - homelab
+
+volumes:
+  static_volume:
+
+networks:
+  homelab:
+    driver: bridge

@@ -1,0 +1,8 @@
+# Production requirements - includes all base requirements plus database drivers
+
+# Include base requirements
+-r requirements.txt
+
+# Database Drivers for Production
+psycopg2-binary==2.9.9  # PostgreSQL
+# mysqlclient==2.2.0    # MySQL (uncomment if needed)

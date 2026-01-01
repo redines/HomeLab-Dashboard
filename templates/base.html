@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HomeLab Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-bg-primary text-text-primary font-sans leading-relaxed">
+    <header class="bg-bg-secondary border-b border-border shadow-md">
+        <div class="max-w-screen-2xl mx-auto px-5 py-4 flex justify-between items-center flex-col md:flex-row gap-4">
+            <h1 class="text-2xl font-bold text-text-primary">🏠 HomeLab Dashboard</h1>
+            <nav class="flex gap-3">
+                <button id="add-service-btn" class="px-5 py-2.5 bg-green-600 text-white rounded-md cursor-pointer text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg">
+                    <span class="text-lg">➕</span> Add Service
+                </button>
+                <button id="refresh-btn" class="px-5 py-2.5 bg-primary text-white rounded-md cursor-pointer text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-lg">
+                    <span class="inline-block transition-transform duration-300 hover:rotate-180">🔄</span> Refresh Services
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="py-8">
+        <div class="max-w-screen-2xl mx-auto px-5">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="bg-bg-secondary border-t border-border py-6 mt-12 text-center">
+        <div class="max-w-screen-2xl mx-auto px-5">
+            <p class="text-text-secondary text-sm">&copy; 2025 HomeLab Dashboard | Last updated: <span id="last-updated">{{ last_updated|date:"Y-m-d H:i:s" }}</span></p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

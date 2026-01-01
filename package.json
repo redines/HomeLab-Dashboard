@@ -1,0 +1,26 @@
+{
+  "name": "homelab-dashboard",
+  "version": "1.0.0",
+  "description": "HomeLab Dashboard with Tailwind CSS",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/src/input.css -o ./static/css/output.css --minify",
+    "watch:css": "tailwindcss -i ./static/src/input.css -o ./static/css/output.css --watch",
+    "dev": "concurrently --kill-others \"npm run watch:css\" \"python manage.py runserver\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.33",
+    "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@testing-library/jest-dom": "^6.1.5",
+    "identity-obj-proxy": "^3.0.0"
+  }
+}
