@@ -2,6 +2,8 @@
 
 A modern, beautiful dashboard for monitoring your homelab services. Automatically discovers services from Traefik or manually add any service (internal or external). Shows health status, uptime, and provides quick access to your services.
 
+testing github
+
 ![Django](https://img.shields.io/badge/Django-5.1-green.svg)
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)
