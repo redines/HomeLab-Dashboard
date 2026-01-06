@@ -21,12 +21,12 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -65,12 +65,12 @@ jobs:
           -v \
           --tb=short
     
-    - name: Upload backend coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Upload backend coverage
+      uses: actions/upload-artifact@v4
       with:
-        files: ./coverage.xml
-        flags: backend
-        name: backend-coverage
+        name: backend-coverage-${{ matrix.python-version }}
+        path: ./coverage.xml
+        retention-days: 7
   
   frontend-tests:
     name: Frontend Tests (JavaScript/Jest)
@@ -96,12 +96,12 @@ jobs:
     - name: Run frontend tests
       run: npm test -- --coverage
     
-    - name: Upload frontend coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Upload frontend coverage
+      uses: actions/upload-artifact@v4
       with:
-        files: ./coverage/frontend/coverage-final.json
-        flags: frontend
-        name: frontend-coverage
+        name: frontend-coverage-${{ matrix.node-version }}
+        path: ./coverage/
+        retention-days: 7
   
   integration-tests:
     name: Integration Tests
@@ -112,7 +112,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
@@ -152,7 +152,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
