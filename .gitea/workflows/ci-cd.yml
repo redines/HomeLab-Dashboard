@@ -59,7 +59,7 @@ jobs:
       
       - name: Run backend tests
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          DATABASE_URL: postgresql://test_user:test_password@postgres:5432/test_db
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: 'False'
         run: |
